@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  timeout.spring.config.ConnectTimeoutServiceConfig,\
+  timeout.spring.config.ExpiresHeaderFilterConfig,\
+  timeout.spring.config.FeignClientConfig,\
+  timeout.spring.config.GlobalTimeoutHandlerConfig
