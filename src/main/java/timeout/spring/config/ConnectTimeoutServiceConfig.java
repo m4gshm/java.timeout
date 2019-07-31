@@ -12,7 +12,9 @@ public class ConnectTimeoutServiceConfig {
 
     @Bean
     ConnectTimeoutExecutor connectTimeoutService(ConnectTimeoutProperties properties) {
-        return new ConnectTimeoutExecutor(properties.getConnectionToRequestTimeoutRate());
+        return new ConnectTimeoutExecutor(
+                properties.getConnectionToRequestTimeoutRate(),
+                properties.getNextDeadlineRate());
     }
 
 }

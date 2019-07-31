@@ -12,6 +12,11 @@ import static java.lang.System.currentTimeMillis;
 public class ConnectTimeoutExecutor {
 
     private final double connectionToRequestTimeoutRate;
+    private final double nextDeadlineRate;
+
+    public ConnectTimeoutExecutor() {
+        this(0.3, 1);
+    }
 
     public static void check(long current, long deadline) throws DeadlineExceededException {
         if (deadline <= current) throw new DeadlineExceededException(current, deadline);
@@ -33,8 +38,10 @@ public class ConnectTimeoutExecutor {
             long connectTimeout = (long) (sumTimeout * connectionToRequestTimeoutRate);
             long requestTimeout = sumTimeout - connectTimeout;
 
-            log.trace("deadline:{}, connectTimeout:{}, requestTimeout:{}", deadline, connectTimeout, requestTimeout);
-            return function.consume(deadline, connectTimeout, requestTimeout);
+            long nextDeadline = (long) (deadline * nextDeadlineRate);
+            log.trace("deadline:{}, nextDeadline:{}, connectTimeout:{}, requestTimeout:{}",
+                    deadline, nextDeadline, connectTimeout, requestTimeout);
+            return function.consume(nextDeadline, connectTimeout, requestTimeout);
         } else {
             log.trace("no deadline");
             return function.consume(-1, -1, -1);
