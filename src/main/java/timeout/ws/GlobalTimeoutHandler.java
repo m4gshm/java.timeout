@@ -35,16 +35,20 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     @Override
     @SuppressWarnings("unchecked")
     public boolean handleMessage(SOAPMessageContext context) {
-        executor.run((Long deadline, long connectTimeout, long requestTimeout) -> {
-            if (connectTimeout >= 0) context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, (int) connectTimeout);
-            if (requestTimeout >= 0) context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, (int) requestTimeout);
+        executor.run((Long deadline, Long connectTimeout, Long requestTimeout) -> {
+            if (connectTimeout != null && connectTimeout >= 0) {
+                context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.intValue());
+            }
+            if (requestTimeout != null && requestTimeout >= 0) {
+                context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.intValue());
+            }
 
-           if (deadline != null) {
-               var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
-               if (headers == null) headers = new HashMap();
-               headers.put(headerName, singletonList(formatter.apply(deadline)));
-               context.put(HTTP_REQUEST_HEADERS, headers);
-           }
+            if (deadline != null) {
+                var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
+                if (headers == null) headers = new HashMap();
+                headers.put(headerName, singletonList(formatter.apply(deadline)));
+                context.put(HTTP_REQUEST_HEADERS, headers);
+            }
         });
         return true;
     }

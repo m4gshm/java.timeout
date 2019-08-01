@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import org.slf4j.Logger;
 import timeout.DeadlineExecutor;
 import timeout.http.HttpDateHelper;
 
@@ -12,8 +13,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.function.Function;
 
+import static java.time.ZonedDateTime.now;
 import static java.util.Objects.requireNonNull;
-import static timeout.DeadlineHolder.calc;
 import static timeout.http.HttpHeaders.EXPIRES_HEADER;
 
 @Slf4j
@@ -38,6 +39,13 @@ public class ExpiresHeaderFilter implements Filter {
         this.parser = requireNonNull(parser, "parser");
         this.defaultDeadline = defaultDeadline;
         this.executor = requireNonNull(executor, "executor");
+    }
+
+    private static long calc(Duration defaultDeadline, Logger log) {
+        val dateTime = now().plus(defaultDeadline);
+        val deadline = dateTime.toInstant().toEpochMilli();
+        log.trace("uses default deadline:{}, as date-time:{}", deadline, dateTime);
+        return deadline;
     }
 
     @Override
