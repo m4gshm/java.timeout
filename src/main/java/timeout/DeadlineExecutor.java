@@ -159,6 +159,7 @@ public class DeadlineExecutor {
         val deadline = getDeadline();
         checkAndCall(deadline, c(deadline, consumer), deadlineExceed);
     }
+
     @SneakyThrows
     private <T> T checkAndCall(Long deadline, Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
         if (deadline != null) {
@@ -262,10 +263,10 @@ public class DeadlineExecutor {
     }
 
     public interface DeadlineExceedFunction<T> {
-        T apply(long checkTime, long deadline);
+        T apply(long checkTime, long deadline) throws DeadlineExceededException;
     }
 
     public interface DeadlineExceedConsumer {
-        void consume(long checkTime, long deadline);
+        void consume(long checkTime, long deadline) throws DeadlineExceededException;
     }
 }
