@@ -5,7 +5,9 @@ import feign.Request;
 import feign.Request.Options;
 import feign.Response;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.var;
 import timeout.DeadlineExecutor;
 import timeout.http.HttpDateHelper;
 
@@ -19,6 +21,7 @@ import static feign.Request.create;
 import static java.util.Collections.singleton;
 import static timeout.http.HttpHeaders.EXPIRES_HEADER;
 
+@Slf4j
 public class DeadlineDefaultFeignClient extends Client.Default {
 
     private final DeadlineExecutor executor;
@@ -46,8 +49,13 @@ public class DeadlineDefaultFeignClient extends Client.Default {
     @Override
     public Response execute(Request request, Options options) {
         return executor.call((deadline, connectionTimeout, requestTimeout) -> {
-            val newOptions = newOptions(options, connectionTimeout, requestTimeout);
-            Request newRequest = request;
+            Options newOptions;
+            if (connectionTimeout < 0 || requestTimeout < 0) {
+                log.debug("connectionTimeout:{} or requestTimeout:{} less than 0",
+                        connectionTimeout, requestTimeout);
+                newOptions = options;
+            } else newOptions = newOptions(options, connectionTimeout, requestTimeout);
+            var newRequest = request;
             if (deadline != null) {
                 val headers = new HashMap<String, Collection<String>>(request.headers());
                 headers.put(expiresHeaderName, singleton(formatter.apply(deadline)));
