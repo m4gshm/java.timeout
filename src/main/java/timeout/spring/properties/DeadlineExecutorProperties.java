@@ -7,12 +7,15 @@ import org.springframework.boot.convert.DurationUnit;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
-@ConfigurationProperties("connect.timeout")
+import static java.time.Duration.ofSeconds;
+import static java.time.temporal.ChronoUnit.SECONDS;
+
+@ConfigurationProperties("deadline")
 @Data
-public class ConnectTimeoutProperties {
+public class DeadlineExecutorProperties {
 
     double connectionToRequestTimeoutRate = 0.3;
-    double nextDeadlineRate = 0.9666666;
-    @DurationUnit(ChronoUnit.SECONDS)
-    Duration defaultDeadline = Duration.ofSeconds(30);
+    double childDeadlineRate = 0.9666666;
+    @DurationUnit(SECONDS)
+    Duration defaultDeadline = ofSeconds(30);
 }

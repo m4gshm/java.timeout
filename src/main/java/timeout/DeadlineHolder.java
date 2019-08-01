@@ -13,23 +13,23 @@ import static java.time.ZonedDateTime.now;
 @UtilityClass
 @Slf4j
 public class DeadlineHolder {
-    private static final ThreadLocal<Long> holder = new ThreadLocal<>();
+    private static final ThreadLocal<Long> holder = new InheritableThreadLocal<>();
 
-    public static Long getDeadline() {
+    static Long getDeadline() {
         return holder.get();
     }
 
-    public static void setDeadline(Long deadline) {
+    static void setDeadline(Long deadline) {
         holder.set(deadline);
         log.trace("set deadline:{}", deadline);
     }
 
-    public static void clear() {
+    static void clear() {
         holder.set(null);
         log.trace("clear deadline");
     }
 
-    public static Long calc(Duration defaultDeadline, Logger log) {
+    public static long calc(Duration defaultDeadline, Logger log) {
         val dateTime = now().plus(defaultDeadline);
         val deadline = dateTime.toInstant().toEpochMilli();
         log.trace("uses default deadline:{}, as date-time:{}", deadline, dateTime);

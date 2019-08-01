@@ -2,7 +2,7 @@ package timeout.ws;
 
 import lombok.RequiredArgsConstructor;
 import lombok.var;
-import timeout.ConnectTimeoutExecutor;
+import timeout.DeadlineExecutor;
 import timeout.http.HttpDateHelper;
 
 import javax.xml.namespace.QName;
@@ -24,20 +24,20 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     private static final String COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT = "com.sun.xml.internal.ws.connect.timeout";
     private static final String COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT = "com.sun.xml.internal.ws.request.timeout";
 
-    private final ConnectTimeoutExecutor executor;
+    private final DeadlineExecutor executor;
     private final String headerName;
     private final Function<Long, String> formatter;
 
-    public GlobalTimeoutHandler(ConnectTimeoutExecutor executor) {
+    public GlobalTimeoutHandler(DeadlineExecutor executor) {
         this(executor, EXPIRES_HEADER, HttpDateHelper::formatHttpDate);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public boolean handleMessage(SOAPMessageContext context) {
-        executor.run((long deadline, long connectTimeout, long requestTimeout) -> {
-            context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, (int) connectTimeout);
-            context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, (int) requestTimeout);
+        executor.run((Long deadline, long connectTimeout, long requestTimeout) -> {
+            if (connectTimeout >= 0) context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, (int) connectTimeout);
+            if (requestTimeout >= 0) context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, (int) requestTimeout);
             var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
             if (headers == null) headers = new HashMap();
             headers.put(headerName, singletonList(formatter.apply(deadline)));

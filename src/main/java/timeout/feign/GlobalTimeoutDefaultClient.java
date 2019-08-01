@@ -6,15 +6,13 @@ import feign.Request.Options;
 import feign.Response;
 import lombok.SneakyThrows;
 import lombok.val;
-import timeout.ConnectTimeoutExecutor;
+import timeout.DeadlineExecutor;
 import timeout.http.HttpDateHelper;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 import static feign.Request.create;
@@ -23,12 +21,12 @@ import static timeout.http.HttpHeaders.EXPIRES_HEADER;
 
 public class GlobalTimeoutDefaultClient extends Client.Default {
 
-    private final ConnectTimeoutExecutor executor;
+    private final DeadlineExecutor executor;
     private final String expiresHeaderName;
     private final Function<Long, String> formatter;
 
     public GlobalTimeoutDefaultClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
-                                      ConnectTimeoutExecutor executor, String expiresHeaderName,
+                                      DeadlineExecutor executor, String expiresHeaderName,
                                       Function<Long, String> formatter) {
         super(sslContextFactory, hostnameVerifier);
         this.executor = executor;
@@ -37,7 +35,7 @@ public class GlobalTimeoutDefaultClient extends Client.Default {
     }
 
     public GlobalTimeoutDefaultClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
-                                      ConnectTimeoutExecutor executor) {
+                                      DeadlineExecutor executor) {
         this(sslContextFactory, hostnameVerifier, executor, EXPIRES_HEADER, HttpDateHelper::formatHttpDate);
     }
 
@@ -47,14 +45,14 @@ public class GlobalTimeoutDefaultClient extends Client.Default {
 
     @Override
     public Response execute(Request request, Options options) {
-        return executor.call(((deadline, connectionTimeout, requestTimeout) -> {
+        return executor.call((subDeadline, connectionTimeout, requestTimeout) -> {
             val newOptions = newOptions(options, connectionTimeout, requestTimeout);
             val headers = new HashMap<String, Collection<String>>(request.headers());
-            headers.put(expiresHeaderName, singleton(formatter.apply(deadline)));
+            headers.put(expiresHeaderName, singleton(formatter.apply(subDeadline)));
 
             val newRequest = create(request.httpMethod(), request.url(), headers, request.requestBody());
             return superExecute(newRequest, newOptions);
-        }));
+        });
     }
 
     @SneakyThrows
