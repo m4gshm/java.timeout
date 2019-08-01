@@ -17,5 +17,5 @@ public class DeadlineExecutorProperties {
     double connectionToRequestTimeoutRate = 0.3;
     double childDeadlineRate = 0.9666666;
     @DurationUnit(SECONDS)
-    Duration defaultDeadline = ofSeconds(30);
+    Duration defaultDeadline;
 }
