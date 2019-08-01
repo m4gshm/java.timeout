@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.Executors.newCachedThreadPool;
+import static timeout.DeadlineHolder.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -52,10 +53,6 @@ public class DeadlineExecutor {
         return (DeadlineExceedFunction<T>) throwFunc;
     }
 
-    private Long getDeadline() {
-        return DeadlineHolder.getDeadline();
-    }
-
     /**
      * calls Callable in new deadline context. Checks if the deadline is exceeded and puts it in ThreadLocal.
      *
@@ -65,11 +62,11 @@ public class DeadlineExecutor {
      * @return - callable result
      */
     public <T> T call(Long deadline, Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
-        return startContext(deadline, callable, deadlineExceed);
+        return startOrJoin(deadline, callable, deadlineExceed);
     }
 
     public <T> T call(Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
-        return inExistedContext(callable, deadlineExceed);
+        return join(callable, deadlineExceed);
     }
 
     /**
@@ -79,83 +76,86 @@ public class DeadlineExecutor {
      * @param runnable - some runnable
      */
     public void run(Long deadline, Runnable runnable) {
-        startContext(deadline, c(runnable), throwFunc());
+        startOrJoin(deadline, c(runnable), throwFunc());
     }
 
     public void run(Long deadline, Runnable runnable, DeadlineExceedConsumer deadlineExceed) {
-        startContext(deadline, c(runnable), f(deadlineExceed));
+        startOrJoin(deadline, c(runnable), f(deadlineExceed));
     }
 
     public void run(Runnable runnable) {
-        inExistedContext(c(runnable), throwFunc());
+        join(c(runnable), throwFunc());
     }
 
     public void run(Runnable runnable, DeadlineExceedConsumer deadlineExceed) {
-        inExistedContext(c(runnable), f(deadlineExceed));
+        join(c(runnable), f(deadlineExceed));
     }
 
     public void run(Long deadline, ChildDeadlineConsumer consumer) {
-        startContext(deadline, c(deadline, consumer), throwFunc());
+        startOrJoin(deadline, c(deadline, consumer), throwFunc());
     }
 
     public void run(Long deadline, ChildDeadlineConsumer consumer, DeadlineExceedConsumer deadlineExceed) {
-        startContext(deadline, c(deadline, consumer), f(deadlineExceed));
+        startOrJoin(deadline, c(deadline, consumer), f(deadlineExceed));
     }
 
     public void run(Long deadline, TimeoutsConsumer consumer) {
-        startContext(deadline, c(deadline, consumer), throwFunc());
+        startOrJoin(deadline, c(deadline, consumer), throwFunc());
     }
 
     public void run(Long deadline, TimeoutsConsumer consumer, DeadlineExceedConsumer deadlineExceed) {
-        startContext(deadline, c(deadline, consumer), f(deadlineExceed));
+        startOrJoin(deadline, c(deadline, consumer), f(deadlineExceed));
     }
 
     public void run(TimeoutsConsumer consumer) {
-        inExistedContext(consumer, throwFunc());
+        join(consumer, throwFunc());
     }
 
     public void run(TimeoutsConsumer consumer, DeadlineExceedConsumer deadlineExceed) {
-        inExistedContext(consumer, f(deadlineExceed));
+        join(consumer, f(deadlineExceed));
     }
 
     public <T> T call(TimeoutsFunction<T> function) {
-        return inExistedContext(function, throwFunc());
+        return join(function, throwFunc());
     }
 
     public <T> T call(TimeoutsFunction<T> function, DeadlineExceedFunction<T> deadlineExceed) {
-        return inExistedContext(function, deadlineExceed);
+        return join(function, deadlineExceed);
     }
 
     public <T> T call(Long deadline, TimeoutsFunction<T> function, DeadlineExceedFunction<T> deadlineExceedConsumer) {
-        return startContext(deadline, c(deadline, function), deadlineExceedConsumer);
+        return startOrJoin(deadline, c(deadline, function), deadlineExceedConsumer);
     }
 
     public <T> T call(Long deadline, ChildDeadlineFunction<T> function, DeadlineExceedFunction<T> deadlineExceedConsumer) {
-        return startContext(deadline, c(deadline, function), deadlineExceedConsumer);
+        return startOrJoin(deadline, c(deadline, function), deadlineExceedConsumer);
     }
 
-    private <T> T startContext(Long deadline, Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
-        DeadlineHolder.setDeadline(deadline);
+    private <T> T startOrJoin(Long deadline, Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
+        val existed = getDeadline();
+        val owner = existed == null;
+        if (owner) setDeadline(deadline);
+        else if (log.isTraceEnabled()) log.trace("deadline has already been set. {}", new Date(existed));
         try {
             return checkAndCall(deadline, callable, deadlineExceed);
         } catch (DeadlineExceededException e) {
             if (deadlineExceed == throwFunc) throw e;
             else return deadlineExceed.apply(e.getCheckTime(), e.getDeadline());
         } finally {
-            DeadlineHolder.clear();
+            if (owner) clear();
         }
     }
 
-    private <T> T inExistedContext(TimeoutsFunction<T> function, DeadlineExceedFunction<T> deadlineExceed) {
+    private <T> T join(TimeoutsFunction<T> function, DeadlineExceedFunction<T> deadlineExceed) {
         val deadline = getDeadline();
         return checkAndCall(deadline, c(deadline, function), deadlineExceed);
     }
 
-    private <T> T inExistedContext(Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
+    private <T> T join(Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
         return checkAndCall(getDeadline(), callable, deadlineExceed);
     }
 
-    private void inExistedContext(TimeoutsConsumer consumer, DeadlineExceedFunction<Void> deadlineExceed) {
+    private void join(TimeoutsConsumer consumer, DeadlineExceedFunction<Void> deadlineExceed) {
         val deadline = getDeadline();
         checkAndCall(deadline, c(deadline, consumer), deadlineExceed);
     }
@@ -239,7 +239,7 @@ public class DeadlineExecutor {
 
     private <T> Future<T> asyncCall(ExecutorService executor, Long deadline, TimeoutsFunction<T> function,
                                     DeadlineExceedFunction<T> deadlineExceedConsumer) {
-        return executor.submit(() -> startContext(deadline, c(deadline, f(deadline, function)), deadlineExceedConsumer));
+        return executor.submit(() -> startOrJoin(deadline, c(deadline, f(deadline, function)), deadlineExceedConsumer));
     }
 
     private Long calcChild(Long deadline) {
