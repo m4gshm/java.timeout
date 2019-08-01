@@ -6,7 +6,7 @@ import timeout.DeadlineExecutor;
 import timeout.ws.GlobalTimeoutHandler;
 
 @Configuration
-public class GlobalTimeoutHandlerConfig {
+public class GlobalTimeoutHandlerAutoConfiguration {
 
     @Bean
     GlobalTimeoutHandler globalTimeoutHandler(DeadlineExecutor timeoutService) {

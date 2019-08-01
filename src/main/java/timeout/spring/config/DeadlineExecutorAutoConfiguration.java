@@ -8,7 +8,7 @@ import timeout.spring.properties.DeadlineExecutorProperties;
 
 @Configuration
 @EnableConfigurationProperties(DeadlineExecutorProperties.class)
-public class DeadlineExecutorConfig {
+public class DeadlineExecutorAutoConfiguration {
 
     @Bean
     DeadlineExecutor deadlineExecutor(DeadlineExecutorProperties properties) {

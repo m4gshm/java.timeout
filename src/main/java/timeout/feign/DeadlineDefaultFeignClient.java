@@ -19,13 +19,13 @@ import static feign.Request.create;
 import static java.util.Collections.singleton;
 import static timeout.http.HttpHeaders.EXPIRES_HEADER;
 
-public class GlobalTimeoutDefaultClient extends Client.Default {
+public class DeadlineDefaultFeignClient extends Client.Default {
 
     private final DeadlineExecutor executor;
     private final String expiresHeaderName;
     private final Function<Long, String> formatter;
 
-    public GlobalTimeoutDefaultClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
+    public DeadlineDefaultFeignClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
                                       DeadlineExecutor executor, String expiresHeaderName,
                                       Function<Long, String> formatter) {
         super(sslContextFactory, hostnameVerifier);
@@ -34,7 +34,7 @@ public class GlobalTimeoutDefaultClient extends Client.Default {
         this.formatter = formatter;
     }
 
-    public GlobalTimeoutDefaultClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
+    public DeadlineDefaultFeignClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
                                       DeadlineExecutor executor) {
         this(sslContextFactory, hostnameVerifier, executor, EXPIRES_HEADER, HttpDateHelper::formatHttpDate);
     }
