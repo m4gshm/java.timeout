@@ -45,12 +45,14 @@ public class DeadlineDefaultFeignClient extends Client.Default {
 
     @Override
     public Response execute(Request request, Options options) {
-        return executor.call((subDeadline, connectionTimeout, requestTimeout) -> {
+        return executor.call((deadline, connectionTimeout, requestTimeout) -> {
             val newOptions = newOptions(options, connectionTimeout, requestTimeout);
-            val headers = new HashMap<String, Collection<String>>(request.headers());
-            headers.put(expiresHeaderName, singleton(formatter.apply(subDeadline)));
-
-            val newRequest = create(request.httpMethod(), request.url(), headers, request.requestBody());
+            Request newRequest = request;
+            if (deadline != null) {
+                val headers = new HashMap<String, Collection<String>>(request.headers());
+                headers.put(expiresHeaderName, singleton(formatter.apply(deadline)));
+                newRequest = create(request.httpMethod(), request.url(), headers, request.requestBody());
+            }
             return superExecute(newRequest, newOptions);
         });
     }
