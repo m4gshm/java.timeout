@@ -42,39 +42,39 @@ public class DeadlineDefaultFeignClient extends Client.Default {
         this(sslContextFactory, hostnameVerifier, executor, EXPIRES_HEADER, HttpDateHelper::formatHttpDate);
     }
 
-    private static Options newOptions(Options options, long connectionTimeout, long requestTimeout) {
-        return new Options((int) connectionTimeout, (int) requestTimeout, options.isFollowRedirects());
+    private static Options newOptions(Options options, long connectionTimeout, long readTimeout) {
+        return new Options((int) connectionTimeout, (int) readTimeout, options.isFollowRedirects());
     }
 
     @Override
     public Response execute(Request request, Options options) {
-        return executor.call((time, connectionTimeout, requestTimeout) -> {
+        return executor.call((connectionTimeout, readTimeout, readDeadline) -> {
             Options newOptions;
             boolean setConnectionTO = connectionTimeout != null && connectionTimeout >= 0;
-            boolean setRequestTO = requestTimeout != null && requestTimeout >= 0;
+            boolean setRequestTO = readTimeout != null && readTimeout >= 0;
             val url = request.url();
             if (setConnectionTO || setRequestTO) {
                 newOptions = newOptions(options, setConnectionTO ? connectionTimeout : options.connectTimeoutMillis(),
-                        setRequestTO ? requestTimeout : options.readTimeoutMillis());
+                        setRequestTO ? readTimeout : options.readTimeoutMillis());
 
-                if (log.isTraceEnabled()) log.trace("url:{} timeouts {}", url,
-                        (setConnectionTO ? "connect:" + connectionTimeout : "") +
+                if (log.isTraceEnabled()) log.trace("url:{} {}", url,
+                        (setConnectionTO ? "connectTimout:" + connectionTimeout : "") +
                                 (setConnectionTO && setRequestTO ? ", " : "") +
-                                (setRequestTO ? "request:" + requestTimeout : ""));
+                                (setRequestTO ? "readTmeout:" + readTimeout : ""));
 
 
             } else {
-                log.debug("connectionTimeout:{} or requestTimeout:{} equal null or less than 0",
-                        connectionTimeout, requestTimeout);
+                log.debug("connectionTimeout:{} or readTimeout:{} equal null or less than 0",
+                        connectionTimeout, readTimeout);
                 newOptions = options;
             }
             var newRequest = request;
-            Long deadline = requestTimeout != null ? time + requestTimeout : null;
-            if (deadline != null) {
+            if (readDeadline != null) {
                 val headers = new HashMap<String, Collection<String>>(request.headers());
-                val expires = formatter.apply(deadline);
+                val expires = formatter.apply(readDeadline);
                 headers.put(expiresHeaderName, singleton(expires));
-                log.trace("converts deadline:{} to http headers. header:{}, value:{}", deadline, expiresHeaderName, expires);
+                log.trace("converts readDeadline:{} to http headers. header:{}, value:{}",
+                        readDeadline, expiresHeaderName, expires);
                 newRequest = create(request.httpMethod(), url, headers, request.requestBody());
             }
             return superExecute(newRequest, newOptions);

@@ -14,8 +14,8 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 @Data
 public class DeadlineExecutorProperties {
 
-    double connectionToRequestTimeoutRate = 0.3;
-    long childDeadlineLag = 200;
+    double connectionToRequestTimeoutRate = 0.1;
+    long childDeadlineLag = 100;
     @DurationUnit(SECONDS)
     Duration defaultDeadline;
 }

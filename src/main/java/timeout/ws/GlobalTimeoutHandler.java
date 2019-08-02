@@ -38,7 +38,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     @Override
     @SuppressWarnings("unchecked")
     public boolean handleMessage(SOAPMessageContext context) {
-        executor.run((time, connectTimeout, requestTimeout) -> {
+        executor.run((connectTimeout, requestTimeout, readDeadline) -> {
             val setConnectTO = connectTimeout != null && connectTimeout >= 0;
             if (setConnectTO) {
                 context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.intValue());
@@ -51,18 +51,17 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
 
             if (setConnectTO || setRequestTO && log.isTraceEnabled()) {
                 val endpoint = context.get(JAVAX_XML_WS_SERVICE_ENDPOINT_ADDRESS);
-                log.trace("endpoint:{} timeouts {}", endpoint, (setConnectTO ? "connect:" + connectTimeout : "") +
+                log.trace("endpoint:{} {}", endpoint, (setConnectTO ? "connectTimeout:" + connectTimeout : "") +
                         (setConnectTO && setRequestTO ? ", " : "") +
-                        (setRequestTO ? "request:" + requestTimeout : ""));
+                        (setRequestTO ? "readTimeout:" + requestTimeout : ""));
             }
 
-            Long deadline = requestTimeout != null ? time + requestTimeout : null;
-            if (deadline != null) {
+            if (readDeadline != null) {
                 var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
                 if (headers == null) headers = new HashMap();
-                val expires = formatter.apply(deadline);
+                val expires = formatter.apply(readDeadline);
                 headers.put(headerName, singletonList(expires));
-                log.trace("converts deadline:{} to http headers. header:{}, value:{}", deadline, headerName, expires);
+                log.trace("converts readDeadline:{} to http headers. header:{}, value:{}", readDeadline, headerName, expires);
                 context.put(HTTP_REQUEST_HEADERS, headers);
             }
         });

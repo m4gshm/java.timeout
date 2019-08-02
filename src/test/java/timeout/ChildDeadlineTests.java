@@ -3,8 +3,8 @@ package timeout;
 import lombok.val;
 import org.junit.Assert;
 import org.junit.Test;
-import timeout.DeadlineExecutor.ChildDeadlineConsumer;
 import timeout.DeadlineExecutor.ChildDeadlineFormula;
+import timeout.DeadlineExecutor.DeadlineConsumer;
 
 import static java.lang.System.currentTimeMillis;
 import static org.junit.Assert.*;
@@ -12,6 +12,13 @@ import static timeout.DeadlineExecutor.lag;
 import static timeout.DeadlineExecutor.rate;
 
 public class ChildDeadlineTests {
+    private DeadlineExecutor newExecutor(long checkpoint, ChildDeadlineFormula formula) {
+        return new DeadlineExecutor(() -> checkpoint, formula);
+    }
+
+    private DeadlineExecutor newExecutor(long checkpoint) {
+        return new DeadlineExecutor(() -> checkpoint);
+    }
 
     @Test
     public void testChildDeadlineMoreThanDeadline() {
@@ -20,7 +27,7 @@ public class ChildDeadlineTests {
         val executor = newExecutor(checkpoint, formula);
         val deadline = checkpoint + 1000;
         try {
-            executor.run(deadline, childDeadline -> Assert.fail());
+            executor.run(deadline, () -> executor.childRun(childDeadline -> Assert.fail()));
             Assert.fail();
         } catch (BadChildDeadlineException e) {
             val message = e.getMessage();
@@ -28,13 +35,6 @@ public class ChildDeadlineTests {
         }
     }
 
-    private DeadlineExecutor newExecutor(long checkpoint, ChildDeadlineFormula formula) {
-        return new DeadlineExecutor(() -> checkpoint, formula);
-    }
-
-    private DeadlineExecutor newExecutor(long checkpoint) {
-        return new DeadlineExecutor(() -> checkpoint);
-    }
 
     @Test
     public void testChildDeadlineNegativeLag() {
@@ -47,7 +47,6 @@ public class ChildDeadlineTests {
         }
     }
 
-
     @Test
     public void testChildDeadlineLag() {
         val deadlineLag = 500;
@@ -55,12 +54,12 @@ public class ChildDeadlineTests {
         val executor = newExecutor(checkpoint, lag(deadlineLag));
 
         val deadline = checkpoint + 1000;
-        executor.run(deadline, childDeadline -> {
+        executor.run(deadline, () -> executor.childRun(childDeadline -> {
             assertNotNull(childDeadline);
             assertTrue(deadline > childDeadline);
             val possibleParentDeadline = childDeadline + deadlineLag;
             assertEquals(deadline, possibleParentDeadline);
-        });
+        }));
     }
 
     @Test
@@ -70,12 +69,12 @@ public class ChildDeadlineTests {
         val executor = newExecutor(checkpoint, rate(calcRate(deadlineLag)));
 
         val deadline = currentTimeMillis() + 1000;
-        executor.run(deadline, childDeadline -> {
+        executor.run(deadline, () -> executor.childRun(childDeadline -> {
             assertNotNull(childDeadline);
             assertTrue(deadline > childDeadline);
             val possibleParentDeadline = childDeadline + deadlineLag;
             assertTrue(deadline >= possibleParentDeadline);
-        });
+        }));
     }
 
     private double calcRate(int deadlineLag) {
@@ -89,15 +88,22 @@ public class ChildDeadlineTests {
         val checkpoint = currentTimeMillis();
         val executor = newExecutor(checkpoint);
         val deadline = currentTimeMillis() + 1000;
-        executor.run(deadline, childDeadline -> {
+        executor.run(deadline, () -> executor.childRun(childDeadline -> {
             assertNotNull(childDeadline);
             assertEquals(deadline, (long) childDeadline);
-        });
+        }));
     }
 
     @Test
     public void childDeadlineNull() {
-        DeadlineExecutor executor = new DeadlineExecutor();
-        executor.run(null, (ChildDeadlineConsumer) Assert::assertNull);
+        val executor = new DeadlineExecutor();
+        executor.run(null, () -> executor.childRun(Assert::assertNull));
     }
+
+    @Test
+    public void childDeadlineWitoutParent() {
+        val executor = new DeadlineExecutor();
+        executor.childRun(Assert::assertNull);
+    }
+
 }
