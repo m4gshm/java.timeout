@@ -50,11 +50,13 @@ public class DeadlineDefaultFeignClient extends Client.Default {
     public Response execute(Request request, Options options) {
         return executor.call((deadline, connectionTimeout, requestTimeout) -> {
             Options newOptions;
-            if (connectionTimeout < 0 || requestTimeout < 0) {
-                log.debug("connectionTimeout:{} or requestTimeout:{} less than 0",
+            if ((connectionTimeout != null && connectionTimeout >= 0) && (requestTimeout != null && requestTimeout >= 0)) {
+                newOptions = newOptions(options, connectionTimeout, requestTimeout);
+            } else  {
+                log.debug("connectionTimeout:{} or requestTimeout:{} equal null  or less than 0",
                         connectionTimeout, requestTimeout);
                 newOptions = options;
-            } else newOptions = newOptions(options, connectionTimeout, requestTimeout);
+            }
             var newRequest = request;
             if (deadline != null) {
                 val headers = new HashMap<String, Collection<String>>(request.headers());
