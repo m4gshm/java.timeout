@@ -52,15 +52,17 @@ public class DeadlineDefaultFeignClient extends Client.Default {
             Options newOptions;
             if ((connectionTimeout != null && connectionTimeout >= 0) && (requestTimeout != null && requestTimeout >= 0)) {
                 newOptions = newOptions(options, connectionTimeout, requestTimeout);
-            } else  {
-                log.debug("connectionTimeout:{} or requestTimeout:{} equal null  or less than 0",
+            } else {
+                log.debug("connectionTimeout:{} or requestTimeout:{} equal null or less than 0",
                         connectionTimeout, requestTimeout);
                 newOptions = options;
             }
             var newRequest = request;
             if (deadline != null) {
                 val headers = new HashMap<String, Collection<String>>(request.headers());
-                headers.put(expiresHeaderName, singleton(formatter.apply(deadline)));
+                val expires = formatter.apply(deadline);
+                headers.put(expiresHeaderName, singleton(expires));
+                log.trace("converts deadline:{} to http headers. header:{}, value:{}", deadline, expiresHeaderName, expires);
                 newRequest = create(request.httpMethod(), request.url(), headers, request.requestBody());
             }
             return superExecute(newRequest, newOptions);

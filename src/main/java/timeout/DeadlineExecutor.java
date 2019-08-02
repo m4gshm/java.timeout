@@ -243,7 +243,14 @@ public class DeadlineExecutor {
     }
 
     private Long calcChild(Long deadline) {
-        return deadline == null ? null : (long) (deadline * childDeadlineRate);
+        Long result;
+        if (deadline == null) result = null;
+        else {
+            result = (long) (deadline * childDeadlineRate);
+            if (log.isTraceEnabled()) log.trace("child deadline:{} for parent deadline:{}, rate:{}",
+                    new Date(result), new Date(deadline), childDeadlineRate);
+        }
+        return result;
     }
 
     public interface TimeoutsConsumer {
