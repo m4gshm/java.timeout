@@ -5,7 +5,7 @@ import lombok.Getter;
 import java.util.Date;
 
 
-class DeadlineExceededException extends RuntimeException {
+public class DeadlineExceededException extends RuntimeException {
     @Getter
     private final long checkTime;
     @Getter
