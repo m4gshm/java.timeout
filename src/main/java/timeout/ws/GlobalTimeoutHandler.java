@@ -1,6 +1,7 @@
 package timeout.ws;
 
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import lombok.var;
 import timeout.DeadlineExecutor;
 import timeout.http.HttpDateHelper;
@@ -35,7 +36,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     @Override
     @SuppressWarnings("unchecked")
     public boolean handleMessage(SOAPMessageContext context) {
-        executor.run((Long deadline, Long connectTimeout, Long requestTimeout) -> {
+        executor.run((connectTimeout, requestTimeout) -> {
             if (connectTimeout != null && connectTimeout >= 0) {
                 context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.intValue());
             }
@@ -43,6 +44,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
                 context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.intValue());
             }
 
+            val deadline = requestTimeout;
             if (deadline != null) {
                 var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
                 if (headers == null) headers = new HashMap();

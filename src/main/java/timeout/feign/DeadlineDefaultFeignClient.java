@@ -48,7 +48,7 @@ public class DeadlineDefaultFeignClient extends Client.Default {
 
     @Override
     public Response execute(Request request, Options options) {
-        return executor.call((deadline, connectionTimeout, requestTimeout) -> {
+        return executor.call((connectionTimeout, requestTimeout) -> {
             Options newOptions;
             if ((connectionTimeout != null && connectionTimeout >= 0) && (requestTimeout != null && requestTimeout >= 0)) {
                 newOptions = newOptions(options, connectionTimeout, requestTimeout);
@@ -58,6 +58,7 @@ public class DeadlineDefaultFeignClient extends Client.Default {
                 newOptions = options;
             }
             var newRequest = request;
+            val deadline = requestTimeout;
             if (deadline != null) {
                 val headers = new HashMap<String, Collection<String>>(request.headers());
                 val expires = formatter.apply(deadline);

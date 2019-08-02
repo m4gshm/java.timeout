@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 import static timeout.DeadlineExecutor.lag;
 import static timeout.DeadlineExecutor.rate;
 
-public class DeadlineExecutorTest {
+public class ChildDeadlineTests {
 
     @Test
     public void testChildDeadlineMoreThanDeadline() {

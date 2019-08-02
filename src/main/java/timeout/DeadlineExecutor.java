@@ -213,22 +213,18 @@ public class DeadlineExecutor {
     }
 
     private Callable<Void> c(Long deadline, TimeoutsConsumer consumer) {
-        return c(deadline, f(deadline, (deadline1, connectionTimeout, requestTimeout) -> {
-            consumer.consume(deadline1, connectionTimeout, requestTimeout);
+        return c(deadline, (connectionTimeout, requestTimeout) -> {
+            consumer.consume(connectionTimeout, requestTimeout);
             return null;
-        }));
-    }
-
-    private <T> Callable<T> c(Long deadline, TimeoutsFunction<T> function) {
-        return c(deadline, f(deadline, function));
+        });
     }
 
     /**
-     * calculates connection and request timeouts for network connections and transforms to ChildDeadlineFunction class
+     * calculates connection and request timeouts for network connections and transforms to Callable class
      */
-    private <T> ChildDeadlineFunction<T> f(Long deadline, TimeoutsFunction<T> function) {
-        return childDeadline -> {
-            val current = currentTimeMillis();
+    private <T> Callable<T> c(Long deadline, TimeoutsFunction<T> function) {
+        return () -> {
+            val current = checkTimeFormula.time();
             Long connectTimeout = null;
             Long requestTimeout = null;
             if (deadline != null) {
@@ -237,7 +233,7 @@ public class DeadlineExecutor {
                 requestTimeout = sumTimeout - connectTimeout;
             }
             log.trace("connectTimeout:{}, requestTimeout:{}", connectTimeout, requestTimeout);
-            return function.apply(childDeadline, connectTimeout, requestTimeout);
+            return function.apply(connectTimeout, requestTimeout);
         };
     }
 
@@ -264,7 +260,7 @@ public class DeadlineExecutor {
 
     private <T> Future<T> asyncCall(ExecutorService executor, Long deadline, TimeoutsFunction<T> function,
                                     DeadlineExceedFunction<T> deadlineExceedConsumer) {
-        return executor.submit(() -> startOrJoin(deadline, c(deadline, f(deadline, function)), deadlineExceedConsumer));
+        return executor.submit(() -> startOrJoin(deadline, c(deadline, function), deadlineExceedConsumer));
     }
 
     private Long calcChild(Long deadline) {
@@ -280,7 +276,7 @@ public class DeadlineExecutor {
     }
 
     public interface TimeoutsConsumer {
-        void consume(Long childDeadline, Long connectionTimeout, Long requestTimeout);
+        void consume(Long connectionTimeout, Long requestTimeout);
     }
 
     public interface ChildDeadlineConsumer {
@@ -292,7 +288,7 @@ public class DeadlineExecutor {
     }
 
     public interface TimeoutsFunction<T> {
-        T apply(Long childDeadline, Long connectionTimeout, Long requestTimeout);
+        T apply(Long connectionTimeout, Long requestTimeout);
     }
 
     public interface DeadlineExceedFunction<T> {
