@@ -18,20 +18,36 @@ import static timeout.DeadlineHolder.*;
 @Slf4j
 @RequiredArgsConstructor
 public class DeadlineExecutor {
+    private static final double defaultTimeoutRate = 0.3;
+    private static final ChildDeadlineFormula childDeadlineEqualsToParent = deadline -> deadline;
     private final static DeadlineExceedFunction<?> throwFunc = (long checkTime, long deadline) -> {
         throw new DeadlineExceededException(checkTime, deadline);
     };
-
     private final double connectionToRequestTimeoutRate;
-    private final double childDeadlineRate;
+    private final TimeFormula checkTimeFormula;
+    private final ChildDeadlineFormula childDeadlineFormula;
     private final ExecutorService defaultExecutor;
 
     public DeadlineExecutor() {
-        this(0.3, 1, newCachedThreadPool());
+        this(defaultTimeoutRate, childDeadlineEqualsToParent);
     }
 
-    public DeadlineExecutor(double connectionToRequestTimeoutRate, double childDeadlineRate) {
-        this(connectionToRequestTimeoutRate, childDeadlineRate, newCachedThreadPool());
+    public DeadlineExecutor(TimeFormula checkTimeFormula,
+                            ChildDeadlineFormula childDeadlineFormula) {
+        this(defaultTimeoutRate, checkTimeFormula, childDeadlineFormula, newCachedThreadPool());
+    }
+
+    public DeadlineExecutor(TimeFormula checkTimeFormula) {
+        this(defaultTimeoutRate, checkTimeFormula, childDeadlineEqualsToParent, newCachedThreadPool());
+    }
+
+    public DeadlineExecutor(double connectionToRequestTimeoutRate, TimeFormula checkTimeFormula,
+                            ChildDeadlineFormula childDeadlineFormula) {
+        this(connectionToRequestTimeoutRate, checkTimeFormula, childDeadlineFormula, newCachedThreadPool());
+    }
+
+    public DeadlineExecutor(double connectionToRequestTimeoutRate, ChildDeadlineFormula childDeadlineFormula) {
+        this(connectionToRequestTimeoutRate, System::currentTimeMillis, childDeadlineFormula, newCachedThreadPool());
     }
 
     private static Callable<Object> c(Runnable runnable) {
@@ -51,6 +67,15 @@ public class DeadlineExecutor {
     @SuppressWarnings("unchecked")
     private static <T> DeadlineExceedFunction<T> throwFunc() {
         return (DeadlineExceedFunction<T>) throwFunc;
+    }
+
+    public static ChildDeadlineFormula rate(double rate) {
+        return deadline -> (long) (deadline * rate);
+    }
+
+    public static ChildDeadlineFormula lag(long lag) {
+        if (lag < 0) throw new IllegalArgumentException("invalid negative lag:" + lag);
+        return deadline -> deadline - lag;
     }
 
     /**
@@ -163,7 +188,7 @@ public class DeadlineExecutor {
     @SneakyThrows
     private <T> T checkAndCall(Long deadline, Callable<T> callable, DeadlineExceedFunction<T> deadlineExceed) {
         if (deadline != null) {
-            val checkTime = currentTimeMillis();
+            val checkTime = checkTimeFormula.time();
             if (deadline <= checkTime) {
                 if (log.isTraceEnabled()) log.trace("Deadline exceed '{}'. check time '{}'",
                         new Date(deadline), new Date(checkTime));
@@ -243,14 +268,15 @@ public class DeadlineExecutor {
     }
 
     private Long calcChild(Long deadline) {
-        Long result;
-        if (deadline == null) result = null;
-        else {
-            result = (long) (deadline * childDeadlineRate);
-            if (log.isTraceEnabled()) log.trace("child deadline:{} for parent deadline:{}, rate:{}",
-                    new Date(result), new Date(deadline), childDeadlineRate);
+        val childDeadline = childDeadlineFormula.calc(deadline);
+        if (log.isTraceEnabled()) log.trace("child deadline:{} for parent deadline:{}",
+                new Date(childDeadline), new Date(deadline));
+
+        if (childDeadline != null && deadline != null) {
+            if (childDeadline > deadline) throw new BadChildDeadlineException(deadline, childDeadline);
+            if (childDeadline < 0) throw new BadChildDeadlineException(deadline, childDeadline);
         }
-        return result;
+        return childDeadline;
     }
 
     public interface TimeoutsConsumer {
@@ -275,5 +301,13 @@ public class DeadlineExecutor {
 
     public interface DeadlineExceedConsumer {
         void consume(long checkTime, long deadline) throws DeadlineExceededException;
+    }
+
+    public interface ChildDeadlineFormula {
+        Long calc(Long deadline);
+    }
+
+    public interface TimeFormula {
+        long time();
     }
 }

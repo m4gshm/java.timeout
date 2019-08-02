@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import timeout.DeadlineExecutor;
 import timeout.spring.properties.DeadlineExecutorProperties;
 
+import static timeout.DeadlineExecutor.lag;
+
 @Configuration
 @EnableConfigurationProperties(DeadlineExecutorProperties.class)
 public class DeadlineExecutorAutoConfiguration {
@@ -14,7 +16,7 @@ public class DeadlineExecutorAutoConfiguration {
     DeadlineExecutor deadlineExecutor(DeadlineExecutorProperties properties) {
         return new DeadlineExecutor(
                 properties.getConnectionToRequestTimeoutRate(),
-                properties.getChildDeadlineRate());
+                lag(properties.getChildDeadlineLag()));
     }
 
 }
