@@ -11,7 +11,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static timeout.DeadlineHolder.*;
 
@@ -213,8 +212,8 @@ public class DeadlineExecutor {
     }
 
     private Callable<Void> c(Long deadline, TimeoutsConsumer consumer) {
-        return c(deadline, (connectionTimeout, requestTimeout) -> {
-            consumer.consume(connectionTimeout, requestTimeout);
+        return c(deadline, (time, connectionTimeout, requestTimeout) -> {
+            consumer.consume(time, connectionTimeout, requestTimeout);
             return null;
         });
     }
@@ -224,16 +223,16 @@ public class DeadlineExecutor {
      */
     private <T> Callable<T> c(Long deadline, TimeoutsFunction<T> function) {
         return () -> {
-            val current = checkTimeFormula.time();
+            val time = checkTimeFormula.time();
             Long connectTimeout = null;
             Long requestTimeout = null;
             if (deadline != null) {
-                val sumTimeout = deadline - current;
+                val sumTimeout = deadline - time;
                 connectTimeout = (long) (sumTimeout * connectionToRequestTimeoutRate);
                 requestTimeout = sumTimeout - connectTimeout;
             }
             log.trace("connectTimeout:{}, requestTimeout:{}", connectTimeout, requestTimeout);
-            return function.apply(connectTimeout, requestTimeout);
+            return function.apply(time, connectTimeout, requestTimeout);
         };
     }
 
@@ -276,7 +275,7 @@ public class DeadlineExecutor {
     }
 
     public interface TimeoutsConsumer {
-        void consume(Long connectionTimeout, Long requestTimeout);
+        void consume(Long time, Long connectionTimeout, Long requestTimeout);
     }
 
     public interface ChildDeadlineConsumer {
@@ -288,7 +287,7 @@ public class DeadlineExecutor {
     }
 
     public interface TimeoutsFunction<T> {
-        T apply(Long connectionTimeout, Long requestTimeout);
+        T apply(Long time, Long connectionTimeout, Long requestTimeout);
     }
 
     public interface DeadlineExceedFunction<T> {

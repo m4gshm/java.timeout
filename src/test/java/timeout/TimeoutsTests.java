@@ -13,7 +13,7 @@ public class TimeoutsTests {
         val checkpoint = currentTimeMillis();
         val executor = newExecutor(checkpoint);
         val deadline = checkpoint + 1000;
-        executor.run(deadline, (connectionTimeout, requestTimeout) -> {
+        executor.run(deadline, (time, connectionTimeout, requestTimeout) -> {
             Assert.assertEquals(300, (long) connectionTimeout);
             Assert.assertEquals(700, (long) requestTimeout);
         });
