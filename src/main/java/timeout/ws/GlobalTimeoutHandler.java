@@ -1,6 +1,7 @@
 package timeout.ws;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
 import timeout.DeadlineExecutor;
@@ -19,12 +20,13 @@ import static java.util.Collections.singletonList;
 import static javax.xml.ws.handler.MessageContext.HTTP_REQUEST_HEADERS;
 import static timeout.http.HttpHeaders.EXPIRES_HEADER;
 
+@Slf4j
 @RequiredArgsConstructor
 public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
 
+    public static final String JAVAX_XML_WS_SERVICE_ENDPOINT_ADDRESS = "javax.xml.ws.service.endpoint.address";
     private static final String COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT = "com.sun.xml.internal.ws.connect.timeout";
     private static final String COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT = "com.sun.xml.internal.ws.request.timeout";
-
     private final DeadlineExecutor executor;
     private final String headerName;
     private final Function<Long, String> formatter;
@@ -37,18 +39,30 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     @SuppressWarnings("unchecked")
     public boolean handleMessage(SOAPMessageContext context) {
         executor.run((time, connectTimeout, requestTimeout) -> {
-            if (connectTimeout != null && connectTimeout >= 0) {
+            val setConnectTO = connectTimeout != null && connectTimeout >= 0;
+            if (setConnectTO) {
                 context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.intValue());
             }
-            if (requestTimeout != null && requestTimeout >= 0) {
+
+            boolean setRequestTO = requestTimeout != null && requestTimeout >= 0;
+            if (setRequestTO) {
                 context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.intValue());
+            }
+
+            if (setConnectTO || setRequestTO && log.isTraceEnabled()) {
+                val endpoint = context.get(JAVAX_XML_WS_SERVICE_ENDPOINT_ADDRESS);
+                log.trace("endpoint:{} timeouts {}", endpoint, (setConnectTO ? "connect:" + connectTimeout : "") +
+                        (setConnectTO && setRequestTO ? ", " : "") +
+                        (setRequestTO ? "request:" + requestTimeout : ""));
             }
 
             Long deadline = requestTimeout != null ? time + requestTimeout : null;
             if (deadline != null) {
                 var headers = (Map<String, Object>) context.get(HTTP_REQUEST_HEADERS);
                 if (headers == null) headers = new HashMap();
-                headers.put(headerName, singletonList(formatter.apply(deadline)));
+                val expires = formatter.apply(deadline);
+                headers.put(headerName, singletonList(expires));
+                log.trace("converts deadline:{} to http headers. header:{}, value:{}", deadline, headerName, expires);
                 context.put(HTTP_REQUEST_HEADERS, headers);
             }
         });

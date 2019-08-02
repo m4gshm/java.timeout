@@ -50,8 +50,19 @@ public class DeadlineDefaultFeignClient extends Client.Default {
     public Response execute(Request request, Options options) {
         return executor.call((time, connectionTimeout, requestTimeout) -> {
             Options newOptions;
-            if ((connectionTimeout != null && connectionTimeout >= 0) && (requestTimeout != null && requestTimeout >= 0)) {
-                newOptions = newOptions(options, connectionTimeout, requestTimeout);
+            boolean setConnectionTO = connectionTimeout != null && connectionTimeout >= 0;
+            boolean setRequestTO = requestTimeout != null && requestTimeout >= 0;
+            val url = request.url();
+            if (setConnectionTO || setRequestTO) {
+                newOptions = newOptions(options, setConnectionTO ? connectionTimeout : options.connectTimeoutMillis(),
+                        setRequestTO ? requestTimeout : options.readTimeoutMillis());
+
+                if (log.isTraceEnabled()) log.trace("url:{} timeouts {}", url,
+                        (setConnectionTO ? "connect:" + connectionTimeout : "") +
+                                (setConnectionTO && setRequestTO ? ", " : "") +
+                                (setRequestTO ? "request:" + requestTimeout : ""));
+
+
             } else {
                 log.debug("connectionTimeout:{} or requestTimeout:{} equal null or less than 0",
                         connectionTimeout, requestTimeout);
@@ -64,7 +75,7 @@ public class DeadlineDefaultFeignClient extends Client.Default {
                 val expires = formatter.apply(deadline);
                 headers.put(expiresHeaderName, singleton(expires));
                 log.trace("converts deadline:{} to http headers. header:{}, value:{}", deadline, expiresHeaderName, expires);
-                newRequest = create(request.httpMethod(), request.url(), headers, request.requestBody());
+                newRequest = create(request.httpMethod(), url, headers, request.requestBody());
             }
             return superExecute(newRequest, newOptions);
         });

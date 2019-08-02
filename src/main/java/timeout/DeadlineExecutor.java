@@ -231,7 +231,7 @@ public class DeadlineExecutor {
                 connectTimeout = (long) (sumTimeout * connectionToRequestTimeoutRate);
                 requestTimeout = sumTimeout - connectTimeout;
             }
-            log.trace("connectTimeout:{}, requestTimeout:{}", connectTimeout, requestTimeout);
+//            log.trace("connectTimeout:{}, requestTimeout:{}", connectTimeout, requestTimeout);
             return function.apply(time, connectTimeout, requestTimeout);
         };
     }
