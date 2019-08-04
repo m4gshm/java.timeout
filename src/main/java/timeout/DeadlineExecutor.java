@@ -56,9 +56,9 @@ public class DeadlineExecutor {
         };
     }
 
-    private static <T> DeadlineExceedFunction<T> f(DeadlineExceedConsumer deadlineExceed) {
+    private static <T> DeadlineExceedFunction<T> f(DeadlineExceedConsumer consumer) {
         return (checkTime, d) -> {
-            deadlineExceed.consume(checkTime, d);
+            consumer.consume(checkTime, d);
             return null;
         };
     }
@@ -177,10 +177,7 @@ public class DeadlineExecutor {
     }
 
     public void childRun(DeadlineConsumer consumer) {
-        childRun(getDeadline(), consumer);
-    }
-
-    public void childRun(Long parentDeadline, DeadlineConsumer consumer) {
+        val parentDeadline = getDeadline();
         checkAndCall(parentDeadline, c(calcChild(parentDeadline), consumer), throwFunc());
     }
 
@@ -287,7 +284,7 @@ public class DeadlineExecutor {
         return asyncCall(defaultExecutor, deadline, function, deadlineExceedConsumer);
     }
 
-    private Long calcChild(Long deadline) {
+    public Long calcChild(Long deadline) {
         val childDeadline = childDeadlineFormula.calc(deadline);
         if (log.isTraceEnabled()) log.trace("child deadline:{} for parent deadline:{}",
                 new Date(childDeadline), new Date(deadline));

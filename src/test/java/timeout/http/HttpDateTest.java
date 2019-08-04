@@ -15,7 +15,7 @@ public class HttpDateTest {
     public void testFormat() {
         val dateTime = of(2018, 1, 1, 1, 1, 1, 0, UTC);
         val epochMilli = dateTime.toInstant().toEpochMilli();
-        val expiresValue = HttpDateHelper.formatHttpDate(epochMilli);
+        val expiresValue = HttpDeadlineHelper.formatHttpDate(epochMilli);
 
         assertEquals("Mon, 1 Jan 2018 01:01:01 GMT", expiresValue);
     }
@@ -24,7 +24,7 @@ public class HttpDateTest {
     @Test
     public void testParse() {
         val expected = of(2018, 1, 1, 1, 1, 1, 0, UTC);
-        val epochMilli = HttpDateHelper.parseHttpDate("Mon, 1 Jan 2018 01:01:01 GMT");
+        val epochMilli = HttpDeadlineHelper.parseHttpDate("Mon, 1 Jan 2018 01:01:01 GMT");
         val expiresDateTime = ofInstant(ofEpochMilli(epochMilli), UTC);
         assertEquals(expected, expiresDateTime);
     }

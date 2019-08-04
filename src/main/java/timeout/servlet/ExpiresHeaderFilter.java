@@ -1,44 +1,42 @@
 package timeout.servlet;
 
-import lombok.SneakyThrows;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
 import org.slf4j.Logger;
 import timeout.DeadlineExecutor;
-import timeout.http.HttpDateHelper;
+import timeout.http.HttpDeadlineHelper;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.util.function.Function;
 
 import static java.time.ZonedDateTime.now;
-import static java.util.Objects.requireNonNull;
-import static timeout.http.HttpHeaders.EXPIRES_HEADER;
+import static timeout.http.HttpHeaders.*;
+import static timeout.http.HttpStatuses.GATEWAY_TIMEOUT;
 
 @Slf4j
+@RequiredArgsConstructor
 public class ExpiresHeaderFilter implements Filter {
 
-    private final String headerName;
-    private final Function<String, Long> parser;
-    private final Duration defaultDeadline;
-    private final DeadlineExecutor executor;
+    private final @NonNull String deadlineHeaderName;
+    private final @NonNull String deadlineExceedHeaderName;
+    private final @NonNull String deadlineCheckTimeHeaderName;
+    private final int deadlineExceedStatus;
+    private final @NonNull Function<String, Long> parser;
+    private final @NonNull Function<Long, String> formatter;
+    private final @NonNull Duration defaultDeadline;
+    private final @NonNull DeadlineExecutor executor;
 
     public ExpiresHeaderFilter(DeadlineExecutor executor) {
         this(null, executor);
     }
 
     public ExpiresHeaderFilter(Duration defaultDeadline, DeadlineExecutor executor) {
-        this(EXPIRES_HEADER, HttpDateHelper::parseHttpDate, defaultDeadline, executor);
-    }
-
-    public ExpiresHeaderFilter(String headerName, Function<String, Long> parser,
-                               Duration defaultDeadline, DeadlineExecutor executor) {
-        this.headerName = requireNonNull(headerName, "headerName");
-        this.parser = requireNonNull(parser, "parser");
-        this.defaultDeadline = defaultDeadline;
-        this.executor = requireNonNull(executor, "executor");
+        this(DEADLINE_HEADER, DEADLINE_EXCEED_HEADER, DEADLINE_CHECK_TIME_HEADER, GATEWAY_TIMEOUT,
+                HttpDeadlineHelper::parseHttpDate, HttpDeadlineHelper::formatHttpDate, defaultDeadline, executor
+        );
     }
 
     private static long calc(Duration defaultDeadline, Logger log) {
@@ -56,10 +54,15 @@ public class ExpiresHeaderFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {
         val httpServletRequest = (HttpServletRequest) request;
-        val expires = httpServletRequest.getHeader(headerName);
+        val expires = httpServletRequest.getHeader(deadlineHeaderName);
         var deadline = parser.apply(expires);
         if (deadline == null && defaultDeadline != null) deadline = calc(defaultDeadline, log);
-        executor.run(deadline, () -> goChain(chain, request, response));
+        executor.run(deadline, () -> goChain(chain, request, response), (checkTime, deadlineExceed) -> {
+            val httpServletResponse = (HttpServletResponse) response;
+            httpServletResponse.setHeader(deadlineExceedHeaderName, formatter.apply(deadlineExceed));
+            httpServletResponse.setHeader(deadlineCheckTimeHeaderName, formatter.apply(checkTime));
+            httpServletResponse.setStatus(deadlineExceedStatus);
+        });
     }
 
     @SneakyThrows
