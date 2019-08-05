@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAmount;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -58,6 +59,7 @@ public interface TimeLimitExecutor {
         }
 
         void run(Runnable runnable);
+        T call(Callable<T> callable);
     }
 
     interface DeadlineExceedFunction<T> {

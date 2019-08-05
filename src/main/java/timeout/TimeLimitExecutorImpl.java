@@ -2,6 +2,7 @@ package timeout;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -53,7 +54,8 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
     private static boolean isExceed(@NonNull Instant checkTime, Instant deadline) {
         if (deadline == null) return false;
         val timeLeft = between(checkTime, deadline);
-        return timeLeft.isZero() || timeLeft.isNegative();
+        val exceed = timeLeft.isZero() || timeLeft.isNegative();
+        return exceed;
     }
 
     private static void clearDeadline() {
@@ -123,6 +125,14 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
             val checkTime = clock.time();
             if (isExceed(checkTime)) exceedFunction.apply(checkTime, deadline);
             else runnable.run();
+        }
+
+        @Override
+        @SneakyThrows
+        public T call(Callable<T> callable) {
+            val checkTime = clock.time();
+            if (isExceed(checkTime)) return exceedFunction.apply(checkTime, deadline);
+            else return callable.call();
         }
     }
 
