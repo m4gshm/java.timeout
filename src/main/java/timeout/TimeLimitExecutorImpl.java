@@ -16,7 +16,7 @@ import static java.time.Duration.between;
 
 @Slf4j
 @RequiredArgsConstructor
-public class TimeLimitExecutorImpl implements TimeLimitExecutor<Instant, Duration> {
+public class TimeLimitExecutorImpl implements TimeLimitExecutor {
 
     private static final ThreadLocal<Instant> holder = new InheritableThreadLocal<>();
     private final Clock<Instant> clock;
@@ -96,13 +96,6 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor<Instant, Duratio
         } finally {
             if (owner) clearDeadline();
         }
-    }
-
-    @Override
-    public void run(Duration timeout, Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer) {
-        val time = clock.time();
-        val deadline = time.plus(timeout);
-        run(deadline, contextConsumer, exceedConsumer);
     }
 
     @RequiredArgsConstructor

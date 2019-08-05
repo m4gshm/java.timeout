@@ -19,7 +19,7 @@ import static feign.Request.create;
 @Slf4j
 public class DeadlineDefaultFeignClient extends Client.Default {
 
-    private final TimeLimitExecutor<?, ?> executor;
+    private final TimeLimitExecutor executor;
     private final FeignRequestTimeLimitStrategy timeLimitStrategy;
 
     public DeadlineDefaultFeignClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,

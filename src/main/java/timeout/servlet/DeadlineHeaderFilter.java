@@ -3,7 +3,7 @@ package timeout.servlet;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
-import timeout.TimeLimitExecutorImpl;
+import timeout.TimeLimitExecutor;
 import timeout.http.HttpDeadlineHelper;
 
 import javax.servlet.*;
@@ -27,14 +27,14 @@ public class DeadlineHeaderFilter implements Filter {
     private final int deadlineExceedStatus;
     private final @NonNull Function<String, Instant> parser;
     private final @NonNull Function<Instant, String> formatter;
-    private final @NonNull Duration defaultDeadline;
-    private final @NonNull TimeLimitExecutorImpl executor;
+    private final Duration defaultDeadline;
+    private final @NonNull TimeLimitExecutor executor;
 
-    public DeadlineHeaderFilter(TimeLimitExecutorImpl executor) {
+    public DeadlineHeaderFilter(TimeLimitExecutor executor) {
         this(null, executor);
     }
 
-    public DeadlineHeaderFilter(Duration defaultDeadline, TimeLimitExecutorImpl executor) {
+    public DeadlineHeaderFilter(Duration defaultDeadline, TimeLimitExecutor executor) {
         this(DEADLINE_HEADER, DEADLINE_EXCEED_HEADER, DEADLINE_CHECK_TIME_HEADER, GATEWAY_TIMEOUT,
                 HttpDeadlineHelper::parseHttpDate, HttpDeadlineHelper::formatHttpDate, defaultDeadline, executor
         );

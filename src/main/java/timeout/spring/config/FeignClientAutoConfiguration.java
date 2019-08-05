@@ -12,14 +12,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import timeout.TimeLimitExecutorImpl;
 import timeout.feign.DeadlineDefaultFeignClient;
-import timeout.feign.FeignRequestDeadlineStrategy;
-import timeout.http.HttpDeadlineHelper;
+import timeout.feign.FeignRequestTimeLimitStrategy;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-
-import static timeout.http.HttpHeaders.*;
-import static timeout.http.HttpStatuses.GATEWAY_TIMEOUT;
 
 @Configuration
 @ConditionalOnClass({Feign.class})
@@ -34,7 +30,7 @@ public class FeignClientAutoConfiguration {
     @Autowired
     TimeLimitExecutorImpl service;
     @Autowired
-    private FeignRequestDeadlineStrategy timeLimitStrategy;
+    private FeignRequestTimeLimitStrategy timeLimitStrategy;
 
     @ConditionalOnMissingBean
     @Bean

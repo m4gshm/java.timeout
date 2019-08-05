@@ -9,11 +9,11 @@ import java.util.function.Function;
 
 import static timeout.DeadlineExceededException.throwDefaultException;
 
-public interface TimeLimitExecutor<D extends Temporal, TO extends TemporalAmount> {
+public interface TimeLimitExecutor {
 
-    <T> T call(D deadline, Function<Context<T>, T> contextConsumer, DeadlineExceedFunction<T> deadlineExceedFunction);
+    <T> T call(Instant deadline, Function<Context<T>, T> contextConsumer, DeadlineExceedFunction<T> deadlineExceedFunction);
 
-    default <T> T call(D deadline, Function<Context<T>, T> contextConsumer) {
+    default <T> T call(Instant deadline, Function<Context<T>, T> contextConsumer) {
         return call(deadline, contextConsumer, throwDefaultException());
     }
 
@@ -29,11 +29,9 @@ public interface TimeLimitExecutor<D extends Temporal, TO extends TemporalAmount
         run(contextConsumer, throwDefaultException);
     }
 
-    void run(D deadline, Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer);
+    void run(Instant deadline, Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer);
 
-    void run(TO timeout, Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer);
-
-    default void run(D deadline, Consumer<Context<Void>> contextConsumer) {
+    default void run(Instant deadline, Consumer<Context<Void>> contextConsumer) {
         run(deadline, contextConsumer, throwDefaultException);
     }
 

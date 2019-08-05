@@ -8,7 +8,6 @@ import timeout.TimeLimitExecutorImpl;
 import timeout.Clock;
 import timeout.spring.properties.TimeLimitExecutorProperties;
 
-import java.time.Duration;
 import java.time.Instant;
 
 import static timeout.Clock.now;
@@ -19,7 +18,7 @@ import static timeout.TimeoutsFormula.rateForDeadline;
 public class TimeLimitExecutorAutoConfiguration {
 
     @Bean
-    TimeLimitExecutor<Instant, Duration> deadlineExecutor(TimeLimitExecutorProperties properties) {
+    TimeLimitExecutor deadlineExecutor(TimeLimitExecutorProperties properties) {
         Clock<Instant> now = now();
         return new TimeLimitExecutorImpl(now, rateForDeadline(properties.getConnectionToRequestTimeoutRate(), now));
     }
