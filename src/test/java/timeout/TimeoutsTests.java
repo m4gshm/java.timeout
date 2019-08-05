@@ -23,7 +23,7 @@ public class TimeoutsTests {
         }));
     }
 
-    private TimeLimitExecutorImpl newExecutor(Instant checkpoint) {
+    private TimeLimitExecutor newExecutor(Instant checkpoint) {
         return new TimeLimitExecutorImpl(() -> checkpoint, rateForDeadline(0.1, () -> checkpoint));
     }
 }

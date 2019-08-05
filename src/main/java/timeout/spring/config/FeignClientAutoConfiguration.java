@@ -10,7 +10,7 @@ import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.cloud.openfeign.ribbon.FeignRibbonClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import timeout.TimeLimitExecutorImpl;
+import timeout.TimeLimitExecutor;
 import timeout.feign.DeadlineDefaultFeignClient;
 import timeout.feign.FeignRequestTimeLimitStrategy;
 
@@ -28,7 +28,7 @@ public class FeignClientAutoConfiguration {
     @Autowired(required = false)
     HostnameVerifier hostnameVerifier;
     @Autowired
-    TimeLimitExecutorImpl service;
+    TimeLimitExecutor service;
     @Autowired
     private FeignRequestTimeLimitStrategy timeLimitStrategy;
 

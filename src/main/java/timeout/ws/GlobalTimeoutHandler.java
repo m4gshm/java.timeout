@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import timeout.TimeLimitExecutorImpl;
+import timeout.TimeLimitExecutor;
 import timeout.http.HttpDeadlineHelper;
 
 import javax.xml.namespace.QName;
@@ -32,7 +32,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     private static final String JAVAX_XML_WS_SERVICE_ENDPOINT_ADDRESS = "javax.xml.ws.service.endpoint.address";
     private static final String COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT = "com.sun.xml.internal.ws.connect.timeout";
     private static final String COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT = "com.sun.xml.internal.ws.request.timeout";
-    private final TimeLimitExecutorImpl executor;
+    private final TimeLimitExecutor executor;
     private final String deadlineHeaderName;
     private final String deadlineExceedHeaderName;
     private final String deadlineCheckTimeHeaderName;
@@ -40,7 +40,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     private final Function<String, Instant> parser;
     private final Function<Instant, String> formatter;
 
-    public GlobalTimeoutHandler(TimeLimitExecutorImpl executor) {
+    public GlobalTimeoutHandler(TimeLimitExecutor executor) {
         this(executor, DEADLINE_HEADER, DEADLINE_EXCEED_HEADER, DEADLINE_CHECK_TIME_HEADER, GATEWAY_TIMEOUT,
                 HttpDeadlineHelper::parseHttpDate,
                 HttpDeadlineHelper::formatHttpDate
