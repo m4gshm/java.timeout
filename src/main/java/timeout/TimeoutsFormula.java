@@ -14,11 +14,11 @@ public interface TimeoutsFormula {
             @Override
             public <T> T calc(Instant deadline, TimeLimitExecutor.TimeoutsFunction<T> timeoutsApplier) {
                 val time = clock.time();
-                val parentTimeout = between(time, deadline);
                 Duration connectTimeout = null;
                 Duration requestTimeout = null;
                 Instant requestDeadline = null;
                 if (deadline != null) {
+                    val parentTimeout = between(time, deadline);
                     connectTimeout = ofMillis((long) (parentTimeout.toMillis() * connectionToRequestTimeoutRate));
                     requestTimeout = parentTimeout.minus(connectTimeout);
                     requestDeadline = time.plus(requestTimeout);
