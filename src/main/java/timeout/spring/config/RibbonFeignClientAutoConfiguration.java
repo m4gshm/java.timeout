@@ -14,8 +14,9 @@ import org.springframework.cloud.openfeign.ribbon.FeignRibbonClientAutoConfigura
 import org.springframework.cloud.openfeign.ribbon.LoadBalancerFeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import timeout.DeadlineExecutor;
+import timeout.TimeLimitExecutorImpl;
 import timeout.feign.DeadlineDefaultFeignClient;
+import timeout.feign.FeignRequestTimeLimitStrategy;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
@@ -31,13 +32,14 @@ public class RibbonFeignClientAutoConfiguration {
     @Autowired(required = false)
     HostnameVerifier hostnameVerifier;
     @Autowired
-    DeadlineExecutor service;
+    TimeLimitExecutorImpl service;
+    @Autowired
+    FeignRequestTimeLimitStrategy timeLimitStrategy;
 
     @ConditionalOnMissingBean
     @Bean
-    public Client feignClient(CachingSpringLoadBalancerFactory cachingFactory,
-                              SpringClientFactory clientFactory) {
-        return new LoadBalancerFeignClient(new DeadlineDefaultFeignClient(sslContextFactory, hostnameVerifier, service),
-                cachingFactory, clientFactory);
+    public Client feignClient(CachingSpringLoadBalancerFactory cachingFactory, SpringClientFactory clientFactory) {
+        return new LoadBalancerFeignClient(new DeadlineDefaultFeignClient(sslContextFactory, hostnameVerifier,
+                service, timeLimitStrategy), cachingFactory, clientFactory);
     }
 }

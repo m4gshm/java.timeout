@@ -10,11 +10,16 @@ import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.cloud.openfeign.ribbon.FeignRibbonClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import timeout.DeadlineExecutor;
+import timeout.TimeLimitExecutorImpl;
 import timeout.feign.DeadlineDefaultFeignClient;
+import timeout.feign.FeignRequestDeadlineStrategy;
+import timeout.http.HttpDeadlineHelper;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
+
+import static timeout.http.HttpHeaders.*;
+import static timeout.http.HttpStatuses.GATEWAY_TIMEOUT;
 
 @Configuration
 @ConditionalOnClass({Feign.class})
@@ -27,12 +32,14 @@ public class FeignClientAutoConfiguration {
     @Autowired(required = false)
     HostnameVerifier hostnameVerifier;
     @Autowired
-    DeadlineExecutor service;
+    TimeLimitExecutorImpl service;
+    @Autowired
+    private FeignRequestDeadlineStrategy timeLimitStrategy;
 
     @ConditionalOnMissingBean
     @Bean
     Client feignClient() {
-        return new DeadlineDefaultFeignClient(sslContextFactory, hostnameVerifier, service);
+        return new DeadlineDefaultFeignClient(sslContextFactory, hostnameVerifier, service, timeLimitStrategy);
     }
 
 }

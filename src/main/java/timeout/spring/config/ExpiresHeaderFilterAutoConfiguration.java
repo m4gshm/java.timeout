@@ -3,9 +3,9 @@ package timeout.spring.config;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import timeout.DeadlineExecutor;
-import timeout.servlet.ExpiresHeaderFilter;
-import timeout.spring.properties.DeadlineExecutorProperties;
+import timeout.TimeLimitExecutorImpl;
+import timeout.servlet.DeadlineHeaderFilter;
+import timeout.spring.properties.TimeLimitExecutorProperties;
 
 import javax.servlet.Filter;
 
@@ -14,8 +14,8 @@ import javax.servlet.Filter;
 public class ExpiresHeaderFilterAutoConfiguration {
 
     @Bean
-    public ExpiresHeaderFilter expiresHeaderFilter(DeadlineExecutorProperties properties,
-                                                   DeadlineExecutor executor) {
-        return new ExpiresHeaderFilter(properties.getDefaultDeadline(), executor);
+    public DeadlineHeaderFilter expiresHeaderFilter(TimeLimitExecutorProperties properties,
+                                                    TimeLimitExecutorImpl executor) {
+        return new DeadlineHeaderFilter(properties.getDefaultDeadline(), executor);
     }
 }

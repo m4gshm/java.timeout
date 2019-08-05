@@ -10,9 +10,9 @@ import java.time.temporal.ChronoUnit;
 import static java.time.Duration.ofSeconds;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
-@ConfigurationProperties("deadline")
+@ConfigurationProperties("timeout")
 @Data
-public class DeadlineExecutorProperties {
+public class TimeLimitExecutorProperties {
 
     double connectionToRequestTimeoutRate = 0.1;
     long childDeadlineLag = 100;

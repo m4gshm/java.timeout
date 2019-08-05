@@ -1,27 +1,29 @@
 package timeout;
 
 import lombok.val;
-import org.junit.Assert;
 import org.junit.Test;
 
-import static java.lang.System.currentTimeMillis;
+import java.time.Instant;
+
+import static java.time.Duration.ofMillis;
 import static org.junit.Assert.assertEquals;
+import static timeout.TimeoutsFormula.rateForDeadline;
 
 public class TimeoutsTests {
 
     @Test
     public void testDefaultTimeouts() {
-        val checkpoint = currentTimeMillis();
+        val checkpoint = Instant.now();
         val executor = newExecutor(checkpoint);
-        val deadline = checkpoint + 1000;
-        executor.run(deadline, (connectionTimeout, requestTimeout, readDeadline) -> {
-            assertEquals(100, (long) connectionTimeout);
-            assertEquals(900, (long) requestTimeout);
-            assertEquals(checkpoint + requestTimeout, (long) readDeadline);
-        });
+        val deadline = checkpoint.plusMillis(1000);
+        executor.run(deadline, context -> context.timeouts((connectionTimeout, requestTimeout, readDeadline) -> {
+            assertEquals(ofMillis(100), connectionTimeout);
+            assertEquals(ofMillis(900), requestTimeout);
+            assertEquals(checkpoint.plus(requestTimeout), readDeadline);
+        }));
     }
 
-    private DeadlineExecutor newExecutor(long checkpoint) {
-        return new DeadlineExecutor(() -> checkpoint);
+    private TimeLimitExecutorImpl newExecutor(Instant checkpoint) {
+        return new TimeLimitExecutorImpl(() -> checkpoint, rateForDeadline(0.1, () -> checkpoint));
     }
 }

@@ -1,24 +1,35 @@
 package timeout;
 
 import lombok.Getter;
+import timeout.TimeLimitExecutor.DeadlineExceedConsumer;
+import timeout.TimeLimitExecutor.DeadlineExceedFunction;
 
-import java.util.Date;
+import java.time.Instant;
 
 
 public class DeadlineExceededException extends RuntimeException {
     @Getter
-    private final Long checkTime;
+    protected final Instant checkTime;
     @Getter
-    private final Long deadline;
+    private final Instant deadline;
 
-    public DeadlineExceededException(Long checkTime, Long deadline) {
-        super("Deadline exceed '" + toDate(deadline) + "'. check time '" + toDate(checkTime) + "'");
+    public DeadlineExceededException(Instant checkTime, Instant deadline) {
+        super("Deadline exceed '" + deadline + "'. check time '" + checkTime + "'");
         this.checkTime = checkTime;
         this.deadline = deadline;
     }
 
-    private static String toDate(Long millis) {
-        return millis != null ? new Date(millis).toString(): "unknown";
+    private final static DeadlineExceedFunction<?> throwFunc = (checkTime, deadline) -> {
+        throw new DeadlineExceededException(checkTime, deadline);
+    };
+
+    final static DeadlineExceedConsumer throwDefaultException = (checkTime, deadline) -> {
+        throw new DeadlineExceededException(checkTime, deadline);
+    };
+
+    @SuppressWarnings("unchecked")
+    static <T> DeadlineExceedFunction<T> throwDefaultException() {
+        return (DeadlineExceedFunction<T>) throwFunc;
     }
 
 }

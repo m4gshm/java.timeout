@@ -4,13 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import timeout.DeadlineExecutor;
+import timeout.TimeLimitExecutorImpl;
 import timeout.http.HttpDeadlineHelper;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,15 +32,15 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     private static final String JAVAX_XML_WS_SERVICE_ENDPOINT_ADDRESS = "javax.xml.ws.service.endpoint.address";
     private static final String COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT = "com.sun.xml.internal.ws.connect.timeout";
     private static final String COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT = "com.sun.xml.internal.ws.request.timeout";
-    private final DeadlineExecutor executor;
+    private final TimeLimitExecutorImpl executor;
     private final String deadlineHeaderName;
     private final String deadlineExceedHeaderName;
     private final String deadlineCheckTimeHeaderName;
     private final int deadlineExceedStatus;
-    private final Function<String, Long> parser;
-    private final Function<Long, String> formatter;
+    private final Function<String, Instant> parser;
+    private final Function<Instant, String> formatter;
 
-    public GlobalTimeoutHandler(DeadlineExecutor executor) {
+    public GlobalTimeoutHandler(TimeLimitExecutorImpl executor) {
         this(executor, DEADLINE_HEADER, DEADLINE_EXCEED_HEADER, DEADLINE_CHECK_TIME_HEADER, GATEWAY_TIMEOUT,
                 HttpDeadlineHelper::parseHttpDate,
                 HttpDeadlineHelper::formatHttpDate
@@ -73,15 +74,15 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
     }
 
     private void handleRequest(SOAPMessageContext context) {
-        executor.run((connectTimeout, requestTimeout, readDeadline) -> {
-            val setConnectTO = connectTimeout != null && connectTimeout >= 0;
+        executor.run(c -> c.timeouts((connectTimeout, requestTimeout, readDeadline) -> {
+            val setConnectTO = connectTimeout != null && connectTimeout.toMillis() >= 0;
             if (setConnectTO) {
-                context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.intValue());
+                context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.toMillis());
             }
 
-            val setRequestTO = requestTimeout != null && requestTimeout >= 0;
+            val setRequestTO = requestTimeout != null && requestTimeout.toMillis() >= 0;
             if (setRequestTO) {
-                context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.intValue());
+                context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.toMillis());
             }
 
             if (setConnectTO || setRequestTO && log.isTraceEnabled()) {
@@ -98,7 +99,7 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
                 log.trace("converts readDeadline:{} to http headers. header:{}, value:{}", readDeadline, deadlineHeaderName, expires);
                 context.put(HTTP_REQUEST_HEADERS, headers);
             }
-        });
+        }));
     }
 
     private void handleResponse(SOAPMessageContext context) {
