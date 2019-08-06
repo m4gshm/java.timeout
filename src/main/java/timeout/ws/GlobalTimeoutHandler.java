@@ -77,12 +77,12 @@ public class GlobalTimeoutHandler implements SOAPHandler<SOAPMessageContext> {
         executor.run(c -> c.timeouts((connectTimeout, requestTimeout, readDeadline) -> {
             val setConnectTO = connectTimeout != null && connectTimeout.toMillis() >= 0;
             if (setConnectTO) {
-                context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, connectTimeout.toMillis());
+                context.put(COM_SUN_XML_INTERNAL_WS_CONNECT_TIMEOUT, (int)connectTimeout.toMillis());
             }
 
             val setRequestTO = requestTimeout != null && requestTimeout.toMillis() >= 0;
             if (setRequestTO) {
-                context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, requestTimeout.toMillis());
+                context.put(COM_SUN_XML_INTERNAL_WS_REQUEST_TIMEOUT, (int)requestTimeout.toMillis());
             }
 
             if (setConnectTO || setRequestTO && log.isTraceEnabled()) {

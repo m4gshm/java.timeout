@@ -137,17 +137,4 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
     }
 
 
-    @FieldDefaults(makeFinal = true)
-    static class TimeoutContext<T> extends DeadlineContext<T> {
-        Duration timeout;
-        Instant startTime;
-
-        public TimeoutContext(Instant startTime, Duration timeout, Clock<Instant> clock,
-                              TimeoutsFormula timeoutsFormula,
-                              DeadlineExceedFunction<T> exceedFunction) {
-            super(startTime.plus(timeout), clock, timeoutsFormula, exceedFunction);
-            this.startTime = startTime;
-            this.timeout = timeout;
-        }
-    }
 }
