@@ -1,14 +1,18 @@
 package timeout;
 
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.experimental.FieldDefaults;
+
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.Temporal;
-import java.time.temporal.TemporalAmount;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static lombok.AccessLevel.PRIVATE;
 import static timeout.DeadlineExceededException.throwDefaultException;
+import static timeout.TimeLimitInternal.*;
 
 public interface TimeLimitExecutor {
 
@@ -36,6 +40,14 @@ public interface TimeLimitExecutor {
         run(deadline, contextConsumer, throwDefaultException);
     }
 
+    default void run(Instant deadline, Runnable runnable, DeadlineExceedConsumer exceedConsumer) {
+        run(deadline, context -> context.run(runnable), exceedConsumer);
+    }
+
+    default void run(Instant deadline, Runnable runnable) {
+        run(deadline, runnable, throwDefaultException);
+    }
+
     interface TimeLimitExceedConsumer<T> {
         void consume(Instant checkTime, T exceed);
     }
@@ -59,6 +71,7 @@ public interface TimeLimitExecutor {
         }
 
         void run(Runnable runnable);
+
         T call(Callable<T> callable);
     }
 
@@ -67,7 +80,32 @@ public interface TimeLimitExecutor {
     }
 
     interface DeadlineExceedConsumer {
-        void consume(Instant checkTime, Instant deadline) throws DeadlineExceededException;
+        void consume(Instant checkTime, Instant exceededDeadline) throws DeadlineExceededException;
     }
 
+    @RequiredArgsConstructor
+    @FieldDefaults(makeFinal = true, level = PRIVATE)
+    class ContextImpl<T> implements Context<T> {
+        Instant deadline;
+        Clock<Instant> clock;
+        TimeoutsFormula timeoutsFormula;
+        DeadlineExceedFunction<T> exceedFunction;
+
+        @Override
+        public T timeouts(TimeoutsFunction<T> function) {
+            return connectionCall(deadline, clock, timeoutsFormula, function, exceedFunction);
+        }
+
+        @Override
+        public void run(Runnable runnable) {
+            timeLimitedRun(deadline, clock, runnable, exceedFunction);
+        }
+
+        @Override
+        @SneakyThrows
+        public T call(Callable<T> callable) {
+            return timeLimitedCall(this.deadline, clock, callable, exceedFunction);
+        }
+
+    }
 }
