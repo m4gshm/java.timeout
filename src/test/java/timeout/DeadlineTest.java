@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.time.Instant.now;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static timeout.TimeLimitExecutorImpl.getThreadDeadline;
 import static timeout.TimeoutsFormula.rateForDeadline;
 
 public class DeadlineTest {
@@ -78,5 +80,26 @@ public class DeadlineTest {
         }), (checkTime, deadline1) -> "deadline");
 
         assertEquals("12deadline", result);
+    }
+
+    @Test
+    public void testDeadlineExceedClearsThreadDeadlineBeforeInvoking() {
+        val checkpoint = now();
+        val executor = newExecutor(discreteClockByRequest(checkpoint));
+        val deadline = checkpoint.plusMillis(2000);
+        Instant result = executor.call(deadline, context -> context.call(() -> {
+            val threadDeadline = getThreadDeadline();
+            Assert.assertNotNull(threadDeadline);
+            return context.call(() -> {
+                Assert.fail();
+                return getThreadDeadline();
+            });
+        }), (checkTime, deadline1) -> {
+            val threadDeadline = getThreadDeadline();
+            assertNull(threadDeadline);
+            return threadDeadline;
+        });
+
+        assertNull(null, result);
     }
 }

@@ -1,6 +1,5 @@
 package timeout;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +18,8 @@ import static lombok.AccessLevel.PRIVATE;
 public class TimeLimitExecutorImpl implements TimeLimitExecutor {
 
     static final ThreadLocal<Instant> holder = new InheritableThreadLocal<>();
+    private static final Runnable DO_NOTHING = () -> {
+    };
     Clock<Instant> clock;
     TimeoutsFormula timeoutsFormula;
 
@@ -36,7 +37,7 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
         };
     }
 
-    private static Instant getThreadDeadline() {
+    static Instant getThreadDeadline() {
         return holder.get();
     }
 
@@ -62,34 +63,40 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
     }
 
     @Override
-    public <T> T call(Instant deadline, Function<Context<T>, T> contextConsumer, DeadlineExceedFunction<T> deadlineExceedFunction) {
+    public <T> T call(Instant deadline, Function<Context<T>, T> contextConsumer,
+                      DeadlineExceedFunction<T> deadlineExceedFunction) {
         val owner = setThreadDeadline(deadline);
-        try {
-            return contextConsumer.apply(new ContextImpl<T>(deadline, clock, timeoutsFormula, deadlineExceedFunction));
-        } finally {
-            if (owner) clearDeadline();
-        }
+        return contextConsumer.apply(new ContextImpl<T>(deadline, clock, timeoutsFormula,
+                clearDeadlineIfOwner(owner), clearDeadlineIfOwner(owner, deadlineExceedFunction)));
     }
 
     @Override
     public <T> T call(Function<Context<T>, T> contextConsumer, DeadlineExceedFunction<T> deadlineExceedFunction) {
         return contextConsumer.apply(new ContextImpl<T>(getThreadDeadline(), clock,
-                timeoutsFormula, deadlineExceedFunction));
+                timeoutsFormula, DO_NOTHING, deadlineExceedFunction));
     }
 
     @Override
     public void run(Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer) {
-        contextConsumer.accept(new ContextImpl<>(getThreadDeadline(), clock, timeoutsFormula, f(exceedConsumer)));
+        contextConsumer.accept(new ContextImpl<>(getThreadDeadline(), clock, timeoutsFormula, DO_NOTHING, f(exceedConsumer)));
     }
 
     @Override
     public void run(Instant deadline, Consumer<Context<Void>> contextConsumer, DeadlineExceedConsumer exceedConsumer) {
         val owner = setThreadDeadline(deadline);
-        try {
-            contextConsumer.accept(new ContextImpl<>(deadline, clock, timeoutsFormula, f(exceedConsumer)));
-        } finally {
-            if (owner) clearDeadline();
-        }
+        contextConsumer.accept(new ContextImpl<>(deadline, clock, timeoutsFormula,
+                clearDeadlineIfOwner(owner), clearDeadlineIfOwner(owner, f(exceedConsumer))));
+    }
+
+    private Runnable clearDeadlineIfOwner(boolean owner) {
+        return owner ? TimeLimitExecutorImpl::clearDeadline : DO_NOTHING;
+    }
+
+    private <T> DeadlineExceedFunction<T> clearDeadlineIfOwner(boolean owner, DeadlineExceedFunction<T> deadlineExceedFunction) {
+        return owner ? (Instant checkTime, Instant deadline) -> {
+            clearDeadline();
+            return deadlineExceedFunction.apply(checkTime, deadline);
+        } : deadlineExceedFunction;
     }
 
     @Override

@@ -1,8 +1,10 @@
 package timeout;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
+import lombok.val;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -10,9 +12,9 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static java.time.Duration.between;
 import static lombok.AccessLevel.PRIVATE;
 import static timeout.DeadlineExceededException.throwDefaultException;
-import static timeout.TimeLimitInternal.*;
 
 public interface TimeLimitExecutor {
 
@@ -89,22 +91,51 @@ public interface TimeLimitExecutor {
         Instant deadline;
         Clock<Instant> clock;
         TimeoutsFormula timeoutsFormula;
+        Runnable noExceedFinalizer;
         DeadlineExceedFunction<T> exceedFunction;
+
+        boolean isExceed(@NonNull Instant checkTime) {
+            if (this.deadline == null) return false;
+            val timeLeft = between(checkTime, this.deadline);
+            return timeLeft.isZero() || timeLeft.isNegative();
+        }
+
+        T exceed(@NonNull Instant checkTime) {
+            return this.exceedFunction.apply(checkTime, this.deadline);
+        }
 
         @Override
         public T timeouts(TimeoutsFunction<T> function) {
-            return connectionCall(deadline, clock, timeoutsFormula, function, exceedFunction);
+            val checkTime = clock.time();
+            if (isExceed(checkTime)) return exceed(checkTime);
+            else try {
+                return timeoutsFormula.calc(deadline, function);
+            } finally {
+                noExceedFinalizer.run();
+            }
         }
 
         @Override
         public void run(Runnable runnable) {
-            timeLimitedRun(deadline, clock, runnable, exceedFunction);
+            val checkTime = clock.time();
+            if (isExceed(checkTime)) exceed(checkTime);
+            else try {
+                runnable.run();
+            } finally {
+                noExceedFinalizer.run();
+            }
         }
 
         @Override
         @SneakyThrows
         public T call(Callable<T> callable) {
-            return timeLimitedCall(this.deadline, clock, callable, exceedFunction);
+            val checkTime = clock.time();
+            if (isExceed(checkTime)) return exceed(checkTime);
+            else try {
+                return callable.call();
+            } finally {
+                noExceedFinalizer.run();
+            }
         }
 
     }
