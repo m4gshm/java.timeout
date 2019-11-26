@@ -8,7 +8,6 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.cloud.openfeign.FeignAutoConfiguration;
-import org.springframework.cloud.openfeign.ribbon.FeignRibbonClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import timeout.TimeLimitExecutor;
@@ -17,7 +16,7 @@ import timeout.feign.FeignRequestTimeLimitStrategy;
 
 @Configuration
 @ConditionalOnClass({Feign.class})
-@AutoConfigureAfter({FeignAutoConfiguration.class, FeignRibbonClientAutoConfiguration.class})
+@AutoConfigureAfter({FeignAutoConfiguration.class})
 public class FeignClientAutoConfiguration {
     @Autowired
     TimeLimitExecutor service;
