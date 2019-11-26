@@ -3,10 +3,10 @@ package timeout.spring.config;
 import com.netflix.loadbalancer.ILoadBalancer;
 import feign.Client;
 import feign.Feign;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.netflix.ribbon.SpringClientFactory;
 import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.cloud.openfeign.ribbon.CachingSpringLoadBalancerFactory;
@@ -14,32 +14,27 @@ import org.springframework.cloud.openfeign.ribbon.FeignRibbonClientAutoConfigura
 import org.springframework.cloud.openfeign.ribbon.LoadBalancerFeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import timeout.TimeLimitExecutor;
-import timeout.feign.DeadlineDefaultFeignClient;
-import timeout.feign.FeignRequestTimeLimitStrategy;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSocketFactory;
 
 @Configuration
 @ConditionalOnClass({ILoadBalancer.class, Feign.class})
-@AutoConfigureBefore({FeignAutoConfiguration.class, FeignRibbonClientAutoConfiguration.class, FeignClientAutoConfiguration.class})
+@AutoConfigureAfter({FeignAutoConfiguration.class, FeignRibbonClientAutoConfiguration.class, FeignClientAutoConfiguration.class})
 public class RibbonFeignClientAutoConfiguration {
 
-
-    @Autowired(required = false)
-    SSLSocketFactory sslContextFactory;
-    @Autowired(required = false)
-    HostnameVerifier hostnameVerifier;
-    @Autowired
-    TimeLimitExecutor service;
-    @Autowired
-    FeignRequestTimeLimitStrategy timeLimitStrategy;
-
-    @ConditionalOnMissingBean
     @Bean
-    public Client feignClient(CachingSpringLoadBalancerFactory cachingFactory, SpringClientFactory clientFactory) {
-        return new LoadBalancerFeignClient(new DeadlineDefaultFeignClient(sslContextFactory, hostnameVerifier,
-                service, timeLimitStrategy), cachingFactory, clientFactory);
+    public BeanPostProcessor ribbonLoadBalancerFeignClientProcessor(
+            CachingSpringLoadBalancerFactory cachingFactory, SpringClientFactory clientFactory) {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+                return bean;
+            }
+
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+                if (bean instanceof Client && !(bean instanceof LoadBalancerFeignClient))
+                    return new LoadBalancerFeignClient((Client) bean, cachingFactory, clientFactory);
+                else return bean;
+            }
+        };
     }
 }

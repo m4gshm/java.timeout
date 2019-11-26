@@ -17,16 +17,16 @@ import java.time.Instant;
 import static feign.Request.create;
 
 @Slf4j
-public class DeadlineDefaultFeignClient extends Client.Default {
+public class DeadlineedFeignClient implements Client {
 
     private final TimeLimitExecutor executor;
     private final FeignRequestTimeLimitStrategy timeLimitStrategy;
+    private final Client delegate;
 
-    public DeadlineDefaultFeignClient(SSLSocketFactory sslContextFactory, HostnameVerifier hostnameVerifier,
-                                      TimeLimitExecutor executor, FeignRequestTimeLimitStrategy timeLimitStrategy) {
-        super(sslContextFactory, hostnameVerifier);
+    public DeadlineedFeignClient(TimeLimitExecutor executor, FeignRequestTimeLimitStrategy timeLimitStrategy, Client delegate) {
         this.executor = executor;
         this.timeLimitStrategy = timeLimitStrategy;
+        this.delegate = delegate;
     }
 
     private static Options newOptions(Options options, long connectionTimeout, long readTimeout) {
@@ -69,7 +69,7 @@ public class DeadlineDefaultFeignClient extends Client.Default {
 
     @SneakyThrows
     private Response superExecute(Request request, Options options) {
-        return super.execute(request, options);
+        return delegate.execute(request, options);
     }
 
 }
