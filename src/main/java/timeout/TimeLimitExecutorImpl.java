@@ -46,7 +46,7 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
         val owner = existed == null;
         if (owner) {
             holder.set(deadline);
-            log.trace("set deadline:{}", deadline);
+            log.trace("set deadline {}", deadline);
         } else log.trace("deadline has already been set. {}", existed);
         return owner;
     }
