@@ -20,11 +20,15 @@ public class DeadlineExceededException extends RuntimeException {
     }
 
     private final static DeadlineExceedFunction<?> throwFunc = (checkTime, deadline) -> {
-        throw new DeadlineExceededException(checkTime, deadline);
+        throw newDeadlineExceededException(checkTime, deadline);
     };
 
+    static DeadlineExceededException newDeadlineExceededException(Instant checkTime, Instant deadline) {
+        return new DeadlineExceededException(checkTime, deadline);
+    }
+
     final static DeadlineExceedConsumer throwDefaultException = (checkTime, deadline) -> {
-        throw new DeadlineExceededException(checkTime, deadline);
+        throw newDeadlineExceededException(checkTime, deadline);
     };
 
     @SuppressWarnings("unchecked")

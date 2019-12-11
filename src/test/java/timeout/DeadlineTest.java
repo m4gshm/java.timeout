@@ -15,22 +15,26 @@ import static timeout.TimeoutsFormula.rateForDeadline;
 
 public class DeadlineTest {
 
-    private static Clock<Instant> discreteClockByRequest(Instant start) {
+    static Clock<Instant> discreteClockByRequest(Instant start) {
+        return discreteClockByRequest(start, 1000);
+    }
+
+    static Clock<Instant> discreteClockByRequest(Instant start, int oneTime) {
         return new Clock<Instant>() {
             Instant time = start;
 
             @Override
             public Instant time() {
-                return time = time.plusMillis(1000);
+                return time = time.plusMillis(oneTime);
             }
         };
     }
 
-    private static TimeLimitExecutor newExecutor(Instant checkpoint) {
+    static TimeLimitExecutor newExecutor(Instant checkpoint) {
         return newExecutor(() -> checkpoint);
     }
 
-    private static TimeLimitExecutorImpl newExecutor(Clock<Instant> clock) {
+    static TimeLimitExecutorImpl newExecutor(Clock<Instant> clock) {
         return new TimeLimitExecutorImpl(clock, rateForDeadline(0.1, clock));
     }
 

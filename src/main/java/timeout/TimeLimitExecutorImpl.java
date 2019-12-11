@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.concurrent.Callable;
@@ -41,7 +42,7 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
         return holder.get();
     }
 
-    private static boolean setThreadDeadline(Instant deadline) {
+    static boolean setThreadDeadline(Instant deadline) {
         val existed = getThreadDeadline();
         val owner = existed == null;
         if (owner) {
@@ -51,7 +52,7 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
         return owner;
     }
 
-    private static void clearDeadline() {
+    static void clearDeadline() {
         holder.set(null);
     }
 
@@ -60,6 +61,16 @@ public class TimeLimitExecutorImpl implements TimeLimitExecutor {
             exceedConsumer.consume(checkTime, deadline);
             return null;
         };
+    }
+
+    @Override
+    public <T> Mono<T> limited(Instant deadline, Mono<T> mono) {
+        return new TimeLimitedMono<T>(deadline, clock, timeoutsFormula, mono);
+    }
+
+    @Override
+    public <T> Mono<T> limited(Mono<T> mono) {
+        return new TimeLimitedMono<T>(null, clock, timeoutsFormula, mono);
     }
 
     @Override

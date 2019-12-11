@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +18,9 @@ import static lombok.AccessLevel.PRIVATE;
 import static timeout.DeadlineExceededException.throwDefaultException;
 
 public interface TimeLimitExecutor {
+
+    <T> Mono<T> limited(Instant deadline, Mono<T> mono);
+    <T> Mono<T> limited(Mono<T> mono);
 
     <T> T call(Instant deadline, Function<Context<T>, T> contextConsumer, DeadlineExceedFunction<T> deadlineExceedFunction);
 

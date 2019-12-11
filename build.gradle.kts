@@ -28,6 +28,8 @@ dependencies {
 //    compileOnly("org.springframework:spring-context:5.1.4.RELEASE")
 //    compileOnly("org.springframework.boot:spring-boot:2.1.2.RELEASE")
     compileOnly("org.springframework.boot:spring-boot-autoconfigure:2.1.2.RELEASE")
+    compileOnly("io.projectreactor:reactor-core:3.2.5.RELEASE")
+    testCompile("io.projectreactor:reactor-core:3.2.5.RELEASE")
 
     testCompile("junit:junit:4.12")
 
