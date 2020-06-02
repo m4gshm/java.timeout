@@ -33,5 +33,9 @@ dependencies {
 
     testCompile("junit:junit:4.12")
 
+    if (JavaVersion.current().isJava9Compatible()) {
+        compileOnly("javax.xml.ws:jaxws-api:2.3.0")
+    }
+
 }
 
