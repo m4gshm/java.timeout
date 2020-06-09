@@ -62,7 +62,7 @@ public class DeadlineedFeignClient implements Client {
     protected Request putToHeaders(Request request, Instant readDeadline, String url) {
         Request newRequest = request;
         if (readDeadline != null) newRequest = create(request.httpMethod(), url,
-                timeLimitStrategy.putToHeaders(readDeadline, request.headers()), request.requestBody());
+                timeLimitStrategy.putToHeaders(readDeadline, request.headers()), request.body(), request.charset());
         return newRequest;
     }
 
