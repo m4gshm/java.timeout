@@ -18,17 +18,19 @@ dependencies {
         testCompileOnly(processor)
     }
 
-    implementation("javax.servlet:javax.servlet-api")
+    compileOnly("javax.servlet:javax.servlet-api")
+    compileOnly("com.netflix.ribbon:ribbon-loadbalancer")
+    compileOnly("io.github.openfeign:feign-core")
+    compileOnly("org.springframework.cloud:spring-cloud-openfeign-core")
+    compileOnly("org.springframework.boot:spring-boot-autoconfigure")
+
     implementation("org.slf4j:slf4j-api")
-    implementation("com.netflix.ribbon:ribbon-loadbalancer")
-    implementation("io.github.openfeign:feign-core")
-    implementation("org.springframework.cloud:spring-cloud-openfeign-core")
-    implementation("org.springframework.boot:spring-boot-autoconfigure")
     implementation("io.projectreactor:reactor-core")
+
     testImplementation("junit:junit")
 
     if (JavaVersion.current().isJava9Compatible()) {
-        implementation("javax.xml.ws:jaxws-api")
+        compileOnly("javax.xml.ws:jaxws-api")
     }
 
 }
