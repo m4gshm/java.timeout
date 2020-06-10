@@ -1,7 +1,8 @@
 repositories.addAll(rootProject.buildscript.repositories)
 
 plugins {
-    id("java")
+    java
+    `java-library`
 }
 
 java {
@@ -18,20 +19,17 @@ dependencies {
         testCompileOnly(processor)
     }
 
+    compileOnly(platform("org.springframework.cloud:spring-cloud-dependencies"))
     compileOnly("javax.servlet:javax.servlet-api")
-    compileOnly("com.netflix.ribbon:ribbon-loadbalancer")
     compileOnly("io.github.openfeign:feign-core")
     compileOnly("org.springframework.cloud:spring-cloud-openfeign-core")
-    compileOnly("org.springframework.boot:spring-boot-autoconfigure")
-
-    implementation("org.slf4j:slf4j-api")
-    implementation("io.projectreactor:reactor-core")
+    compileOnly("org.slf4j:slf4j-api")
+    compileOnly("io.projectreactor:reactor-core")
 
     testImplementation("junit:junit")
 
     if (JavaVersion.current().isJava9Compatible()) {
         compileOnly("javax.xml.ws:jaxws-api")
     }
-
 }
 
