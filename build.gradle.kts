@@ -19,7 +19,6 @@ dependencies {
         testCompileOnly(processor)
     }
 
-    compileOnly(platform("org.springframework.cloud:spring-cloud-dependencies"))
     compileOnly("javax.servlet:javax.servlet-api")
     compileOnly("io.github.openfeign:feign-core")
     compileOnly("org.springframework.cloud:spring-cloud-openfeign-core")
