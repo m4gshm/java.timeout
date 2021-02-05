@@ -32,3 +32,9 @@ dependencies {
     }
 }
 
+
+tasks.jar {
+    manifest {
+        attributes("Automatic-Module-Name" to "java.timeout")
+    }
+}
