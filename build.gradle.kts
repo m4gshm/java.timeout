@@ -28,14 +28,16 @@ if (!asSubproject) configure<io.spring.gradle.dependencymanagement.internal.dsl.
         dependency("javax.servlet:javax.servlet-api:3.0.1")
         dependency("io.github.openfeign:feign-core:[10,)")
         dependency("io.projectreactor:reactor-core:[0.9,)")
-        dependency("org.springframework.cloud:spring-cloud-openfeign-core:[2,)")
+        dependency("org.springframework.cloud:spring-cloud-openfeign-core:[2,)") {
+            exclude("jakarta.annotation:jakarta.annotation-api")
+        }
         dependency("junit:junit:[4,)")
     }
 }
 
 dependencies {
     listOf(
-        "org.projectlombok:lombok"
+            "org.projectlombok:lombok"
     ).forEach { processor ->
         annotationProcessor(processor)
         compileOnly(processor)
@@ -51,8 +53,11 @@ dependencies {
 
     testImplementation("junit:junit")
 
-    if (JavaVersion.current().isJava9Compatible) {
-        compileOnly("javax.xml.ws:jaxws-api:[2,)")
+    val javaVersion = JavaVersion.current()
+    if (javaVersion.isJava9Compatible && !javaVersion.isJava9) {
+        compileOnly("javax.xml.ws:jaxws-api:[2,)") {
+            isTransitive = false
+        }
     }
 }
 
@@ -64,22 +69,49 @@ tasks.compileJava {
     }
 }
 
-if (JavaVersion.current().isJava9Compatible) {
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_9
-        modularity.inferModulePath.set(true)
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+}
+
+val javaVersion = JavaVersion.current()
+if (javaVersion.isJava9Compatible) {
+    val version9 = "9"
+    val sourceSetJava9 = sourceSets.create("java$version9") {
+        compileClasspath = sourceSets["main"].compileClasspath
+        java {
+            srcDirs("src/main/module")
+            include("module-info.java")
+        }
     }
-    sourceSets["main"].java.srcDirs("src/main/module")
+
+    val java8Classes = tasks.getByName(sourceSetJava9.compileJavaTaskName, JavaCompile::class) {
+        sourceCompatibility = version9
+        targetCompatibility = version9
+//        if (!javaVersion.isJava9) {
+//            options.compilerArgs.addAll(listOf("--release", version9))
+//        }
+    }
+
+    tasks.jar {
+        dependsOn(java8Classes)
+        into("META-INF/versions/$version9") {
+            from(sourceSetJava9.output)
+        }
+
+        manifest {
+            attributes(mapOf("Multi-Release" to true))
+        }
+    }
 
     apply {
         from("./automaticModules.gradle.kts")
     }
 
-} else {
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
+        modularity.inferModulePath.set(true)
     }
 
+} else {
     tasks.jar {
         manifest {
             attributes("Automatic-Module-Name" to "java.timeout")
