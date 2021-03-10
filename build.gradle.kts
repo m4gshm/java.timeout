@@ -73,8 +73,10 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
+var buildAsJava9Module: Boolean? by project.extra
 val javaVersion = JavaVersion.current()
-if (javaVersion.isJava9Compatible) {
+if (buildAsJava9Module != false && javaVersion.isJava9Compatible) {
+    project.logger.warn("build as java 9 module")
     val version9 = "9"
     val sourceSetJava9 = sourceSets.create("java$version9") {
         compileClasspath = sourceSets["main"].compileClasspath
@@ -112,6 +114,7 @@ if (javaVersion.isJava9Compatible) {
     }
 
 } else {
+    project.logger.warn("build as standalone module")
     tasks.jar {
         manifest {
             attributes("Automatic-Module-Name" to "java.timeout")
