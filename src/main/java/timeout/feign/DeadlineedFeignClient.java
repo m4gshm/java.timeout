@@ -10,11 +10,11 @@ import lombok.val;
 import lombok.var;
 import timeout.TimeLimitExecutor;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSocketFactory;
+import java.time.Duration;
 import java.time.Instant;
 
 import static feign.Request.create;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @Slf4j
 public class DeadlineedFeignClient implements Client {
@@ -29,26 +29,31 @@ public class DeadlineedFeignClient implements Client {
         this.delegate = delegate;
     }
 
-    private static Options newOptions(Options options, long connectionTimeout, long readTimeout) {
-        return new Options((int) connectionTimeout, (int) readTimeout, options.isFollowRedirects());
+
+    private static Options newOptions(Options options, Duration connectionTimeout, Duration readTimeout,
+                                      boolean setConnectionTO, boolean setRequestTO) {
+        return new Options(
+                setConnectionTO ? connectionTimeout.toMillis() : options.connectTimeoutMillis(), MILLISECONDS,
+                setRequestTO ? readTimeout.toMillis() : options.readTimeoutMillis(), MILLISECONDS,
+                options.isFollowRedirects()
+        );
     }
 
     @Override
     public Response execute(Request request, Options options) {
         return executor.call(context -> context.timeouts((connectionTimeout, readTimeout, readDeadline) -> {
             Options newOptions;
-            val setConnectionTO = connectionTimeout != null && connectionTimeout.toMillis() >= 0;
-            val setRequestTO = readTimeout != null && readTimeout.toMillis() >= 0;
+            val setConnectionTO = connectionTimeout != null && !(connectionTimeout.isZero() || connectionTimeout.isNegative());
+            val setRequestTO = readTimeout != null && !(readTimeout.isZero() || readTimeout.isNegative());
             val url = request.url();
             if (setConnectionTO || setRequestTO) {
-                newOptions = newOptions(options, setConnectionTO ? connectionTimeout.toMillis() : options.connectTimeoutMillis(),
-                        setRequestTO ? readTimeout.toMillis() : options.readTimeoutMillis());
-                if (log.isTraceEnabled()) log.trace("url:{} {}", url,
-                        (setConnectionTO ? "connectTimeout:" + connectionTimeout : "") +
+                newOptions = newOptions(options, connectionTimeout, readTimeout, setConnectionTO, setRequestTO);
+                if (log.isTraceEnabled()) log.trace("url {} {}", url,
+                        (setConnectionTO ? "connectTimeout " + connectionTimeout : "") +
                                 (setConnectionTO && setRequestTO ? ", " : "") +
-                                (setRequestTO ? "readTimeout:" + readTimeout : ""));
+                                (setRequestTO ? "readTimeout " + readTimeout : ""));
             } else {
-                log.debug("connectionTimeout:{} or readTimeout:{} equal null or less than 0",
+                log.debug("connectionTimeout {} or readTimeout {} equal null or less than 0",
                         connectionTimeout, readTimeout);
                 newOptions = options;
             }
@@ -61,8 +66,9 @@ public class DeadlineedFeignClient implements Client {
 
     protected Request putToHeaders(Request request, Instant readDeadline, String url) {
         Request newRequest = request;
+        Request.Body body = Request.Body.create(request.body(), request.charset());
         if (readDeadline != null) newRequest = create(request.httpMethod(), url,
-                timeLimitStrategy.putToHeaders(readDeadline, request.headers()), request.body(), request.charset());
+                timeLimitStrategy.putToHeaders(readDeadline, request.headers()), body, request.requestTemplate());
         return newRequest;
     }
 
