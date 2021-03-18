@@ -1,7 +1,10 @@
 buildscript {
-    val dependencyManagementPluginVer: String by rootProject.extra { "1.0.11.RELEASE" }
+    var dependencyManagementPluginVer: String? by rootProject.extra
+    if (dependencyManagementPluginVer == null) {
+        dependencyManagementPluginVer = "1.0.11.RELEASE"
+    }
 
-    val useMavenCentral: Boolean? by rootProject.extra
+    val useMavenCentral: Boolean? by project.extra
     if (useMavenCentral != false) {
         repositories {
             mavenCentral()
