@@ -1,7 +1,11 @@
 buildscript {
     val dependencyManagementPluginVer: String by rootProject.extra { "1.0.11.RELEASE" }
-    repositories {
-        mavenCentral()
+
+    val useMavenCentral: Boolean? by rootProject.extra
+    if (useMavenCentral != false) {
+        repositories {
+            mavenCentral()
+        }
     }
     dependencies {
         classpath("io.spring.gradle:dependency-management-plugin:$dependencyManagementPluginVer")
