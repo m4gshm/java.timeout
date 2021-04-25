@@ -1,6 +1,6 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  timeout.spring.config.TimeLimitExecutorAutoConfiguration,\
-  timeout.spring.config.FeignRequestDeadlineStrategyAutoConfiguration,\
-  timeout.spring.config.ExpiresHeaderFilterAutoConfiguration,\
-  timeout.spring.config.FeignClientAutoConfiguration,\
-  timeout.spring.config.GlobalTimeoutHandlerAutoConfiguration
+  m4gshm.timeout.spring.config.TimeLimitExecutorAutoConfiguration,\
+  m4gshm.timeout.spring.config.FeignRequestDeadlineStrategyAutoConfiguration,\
+  m4gshm.timeout.spring.config.ExpiresHeaderFilterAutoConfiguration,\
+  m4gshm.timeout.spring.config.FeignClientAutoConfiguration,\
+  m4gshm.timeout.spring.config.GlobalTimeoutHandlerAutoConfiguration
