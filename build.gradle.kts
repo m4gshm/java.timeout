@@ -108,6 +108,7 @@ publishing {
                     maven {
                         name = "mavenCustom"
                         url = uri(repoUrl)
+                        isAllowInsecureProtocol = true
                         credentials {
                             val mavenRepoUser: String? by rootProject
                             val mavenRepoPassword: String? by rootProject
