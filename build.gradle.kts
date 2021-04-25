@@ -1,4 +1,4 @@
-group = "m4gshm.java.timeout"
+group = "m4gshm"
 version = "0.0.1-SNAPSHOT"
 
 repositories {
