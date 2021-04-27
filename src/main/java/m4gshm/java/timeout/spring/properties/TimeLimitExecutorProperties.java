@@ -9,7 +9,7 @@ import java.time.Duration;
 import static java.time.Duration.ofSeconds;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
-@ConfigurationProperties("m4gshm/timeout")
+@ConfigurationProperties("timeout")
 @Data
 public class TimeLimitExecutorProperties {
 
